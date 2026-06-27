@@ -1,6 +1,6 @@
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="art/header-dark.webp">
-    <img alt="Logo for Meilisearch Advanced Query package" src="art/header-light.webp">
+    <img alt="Logo for Laravel Legacy Bridge package" src="art/header-light.webp">
 </picture>
 
 <p align="center">
