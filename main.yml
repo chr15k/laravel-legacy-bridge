@@ -1,0 +1,44 @@
+name: PHP Composer
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        laravel: ['12.*', '13.*']
+
+    name: PHP 8.3 - Laravel ${{ matrix.laravel }}
+
+    steps: 
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: xdebug
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Constrain Laravel version
+        run: composer require "laravel/framework:${{ matrix.laravel }}" --no-update
+
+      - name: Update dependencies
+        run: composer update --prefer-dist --no-progress
+
+      - name: Run test suite
+        run: composer test
