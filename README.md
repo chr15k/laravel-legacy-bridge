@@ -1,6 +1,20 @@
-# Laravel Legacy Bridge
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="art/header-dark.svg">
+    <img alt="Logo for Meilisearch Advanced Query package" src="art/header-light.svg">
+</picture>
 
-Stateful context continuity for Laravel [Strangler Fig](https://martinfowler.com/bliki/StranglerFigApplication.html) migrations.
+<p align="center">
+    <p align="center">
+        <a href="https://github.com/chr15k/laravel-legacy-bridge/actions"><img alt="GitHub Workflow Status (master)" src="https://img.shields.io/github/actions/workflow/status/chr15k/laravel-legacy-bridge/main.yml"></a>
+        <a href="https://packagist.org/packages/chr15k/laravel-legacy-bridge"><img alt="Total Downloads" src="https://img.shields.io/packagist/dt/chr15k/laravel-legacy-bridge"></a>
+        <a href="https://packagist.org/packages/chr15k/laravel-legacy-bridge"><img alt="Latest Version" src="https://img.shields.io/packagist/v/chr15k/laravel-legacy-bridge"></a>
+        <a href="https://packagist.org/packages/chr15k/laravel-legacy-bridge"><img alt="License" src="https://img.shields.io/github/license/chr15k/laravel-legacy-bridge"></a>
+    </p>
+</p>
+
+------
+
+**Laravel Legacy Bridge** is a stateful context continuity solution for Laravel [Strangler Fig](https://martinfowler.com/bliki/StranglerFigApplication.html) migrations.
 
 When you migrate a legacy PHP application to Laravel incrementally, your users are already authenticated in the old app. This package bridges their session, auth state, and any other context they carry into the new Laravel application transparently — on their first request, without forcing a re-login.
 
