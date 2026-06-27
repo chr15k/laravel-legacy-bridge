@@ -37,6 +37,11 @@ final class InstallCommand extends Command
         $this->line('     <comment>LEGACY_DB_PASSWORD=your_password</comment>');
         $this->line('     <comment>LEGACY_SESSION_COOKIE=PHPSESSID</comment>');
         $this->newLine();
+        $this->line('     <fg=yellow>Tip:</> If both apps share the same database, set <comment>LEGACY_DB_CONNECTION</comment>');
+        $this->line('     to your default connection (e.g. <comment>mysql</comment>) and skip adding a new');
+        $this->line('     connection entirely. Only set <comment>LEGACY_SESSION_TABLE</comment> if your legacy');
+        $this->line('     sessions table has a different name than <comment>sessions</comment>.');
+        $this->newLine();
         $this->line('  2. Register the middleware in <comment>bootstrap/app.php</comment>:');
         $this->newLine();
         $this->line('     <comment>->withMiddleware(function (Middleware $middleware) {</comment>');
@@ -67,7 +72,7 @@ final class InstallCommand extends Command
             mkdir(app_path('Bridge'), 0755, true);
         }
 
-        $stub = file_get_contents(__DIR__.'/../../stubs/LegacyUserResolver.stub');
+        $stub = file_get_contents(__DIR__.'/../../../stubs/LegacyUserResolver.stub');
         file_put_contents($destination, $stub);
 
         $this->line('  <fg=green;options=bold>✓</> Resolver stub published → <comment>app/Bridge/LegacyUserResolver.php</comment>');

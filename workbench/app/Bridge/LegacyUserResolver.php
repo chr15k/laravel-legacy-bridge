@@ -1,0 +1,43 @@
+<?php
+
+namespace Workbench\App\Bridge;
+
+use Chr15k\LegacyBridge\Payload\LegacyPayload;
+use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver as LegacyUserResolverContract;
+
+class LegacyUserResolver implements LegacyUserResolverContract
+{
+    /**
+     * Resolve a user ID from the decoded legacy session payload.
+     *
+     * Use $payload->get('key') for dot-notation access:
+     *   $payload->get('user_id')          // top-level scalar
+     *   $payload->get('auth.user.id')     // nested value
+     *
+     * Use $payload->resolveId('key') when the value might be a scalar,
+     * an array with an 'id' key, or an object with an 'id' property.
+     *
+     * Use $payload->has('key') to check before accessing.
+     *
+     * Return null if the session does not represent an authenticated user.
+     */
+    public function resolve(LegacyPayload $payload): ?int
+    {
+        // TODO: update this to match your legacy application's session structure.
+        //
+        // Common examples:
+        //
+        //   return $payload->resolveId('user_id');
+        //
+        //   return $payload->resolveId('auth.user.id')
+        //       ?? $payload->resolveId('user_id');
+        //
+        //   if ($payload->has('admin_user_id')) {
+        //       return $payload->resolveId('admin_user_id');
+        //   }
+        //
+        //   return $payload->resolveId('cartalyst.sentinel.id');
+
+        return $payload->resolveId('user_id');
+    }
+}

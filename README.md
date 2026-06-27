@@ -79,6 +79,7 @@ In `config/database.php`:
 ],
 ```
 
+> [!NOTE]
 > If both applications share the same database, set `LEGACY_DB_CONNECTION` to your default connection name and skip adding a new connection entry.
 
 ### 2. Set environment variables
@@ -107,6 +108,7 @@ In `bootstrap/app.php`:
 })
 ```
 
+> [!NOTE]
 > Place the middleware **after** `StartSession` in the stack so Laravel's own session is initialised before the bridge runs.
 
 ### 4. Implement your resolver
@@ -224,7 +226,8 @@ If your legacy application uses a common structure, you may not need a custom re
 'resolver' => ['driver' => 'custom', 'class' => \App\Bridge\LegacyUserResolver::class],
 ```
 
-The `auto` driver tries a sequence of known paths covering plain PHP apps, Cartalyst Sentinel, Cartalyst Sentry, and older Laravel auth session formats. Use it as a starting point, then switch to `key` or `custom` once you know your payload structure.
+> [!NOTE]
+> The `auto` driver tries a sequence of known paths covering plain PHP apps, Cartalyst Sentinel, Cartalyst Sentry, and older Laravel auth session formats. Use it as a starting point, then switch to `key` or `custom` once you know your payload structure.
 
 ---
 
