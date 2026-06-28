@@ -373,6 +373,82 @@ return [
 
 ---
 
+## Security & Best Practice
+
+### The bridge does not introduce new attack vectors
+
+The package authenticates users based on a session ID that must already exist in your legacy
+database. An attacker cannot forge or guess their way in — a valid row in the legacy sessions
+table is required. The security posture of the bridge is therefore equivalent to the legacy
+application itself: if the legacy app was secure, the bridge is secure.
+
+The realistic threats are the same ones that applied to your legacy app before the migration began.
+
+### Session hijacking
+
+If an attacker intercepts a real user's `PHPSESSID` cookie (via network sniffing on plain HTTP,
+XSS, or similar), they can present it to the Laravel app and be authenticated as that user. This
+is standard session hijacking — not specific to the bridge.
+
+**Mitigation:** enforce HTTPS across both applications. The legacy cookie is excluded from
+Laravel's `EncryptCookies` middleware by design (it was not set by Laravel), so it travels as
+plain text. HTTPS is non-negotiable.
+
+### Legacy database access
+
+If an attacker gains write access to the legacy sessions table, they can insert a row with a
+known ID and authenticate as any user. At that point the session bridge is the least of your
+concerns — treat legacy DB access as a critical breach regardless.
+
+### Keep the migration window short
+
+Every day the bridge is active is another day the legacy sessions table is part of your
+application's trust boundary. Monitor the `legacy-bridge: session bridged` log entries — when
+they stop appearing, the migration is complete. Remove the middleware and uninstall the package
+as soon as possible.
+
+```dotenv
+LEGACY_BRIDGE_LOGGING=true
+LEGACY_BRIDGE_LOG_CHANNEL=stack
+```
+
+### Invalidation strategy
+
+The default `after_write` strategy deletes the legacy session immediately after Laravel writes
+its own. This means each legacy session can only ever be bridged once — a stolen session ID
+cannot be replayed after the legitimate user has already been migrated.
+
+Avoid `never` in production. It leaves legacy session rows in the database indefinitely,
+extending the window in which a stolen session ID remains usable.
+
+### User eligibility
+
+The package calls `Auth::loginUsingId()` without checking whether the user is active, verified,
+or permitted to access the new application. Any such checks should be applied via Laravel's
+authentication events or your `User` model:
+
+```php
+use Illuminate\Auth\Events\Login;
+
+protected $listen = [
+    Login::class => [
+        EnsureUserIsActive::class,
+    ],
+];
+```
+
+### Use an explicit resolver in production
+
+The `auto` resolver tries a sequence of known payload paths. Switch to `key` or `custom` before
+going to production so the user identity path is explicit and unambiguous:
+
+```dotenv
+LEGACY_RESOLVER_DRIVER=key
+LEGACY_RESOLVER_KEY=user_id
+```
+
+---
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).

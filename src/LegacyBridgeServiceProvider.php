@@ -9,6 +9,7 @@ use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Resolvers\ResolverManager;
+use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
@@ -29,7 +30,7 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
         $this->app->singleton(LegacyUserResolver::class, fn ($app) => $app->make(ResolverManager::class)->make());
 
         $this->app->singleton(LegacySessionBridge::class, fn ($app): LegacySessionBridge => new LegacySessionBridge(
-            auth: $app->make('auth'),
+            auth: $app->make(Factory::class),
             decoder: $app->make(PayloadDecoder::class),
             resolver: $app->make(LegacyUserResolver::class),
             contextResolver: $app->bound(LegacyContextResolver::class)

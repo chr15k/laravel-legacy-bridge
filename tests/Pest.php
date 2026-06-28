@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Chr15k\LegacyBridge\Tests\TestCase;
-
-// use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,8 +18,8 @@ use Chr15k\LegacyBridge\Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
-    ->in('Unit');
+    ->use(RefreshDatabase::class)
+    ->in('Unit', 'Feature');
 
 /*
 |--------------------------------------------------------------------------
@@ -45,7 +45,21 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
-function something(): void
+function legacySession(array $payload, string $id = 'test-session', ?int $lastActivity = null): void
 {
-    // ..
+    DB::table('legacy_sessions')->insert([
+        'id'            => $id,
+        'payload'       => base64_encode(serialize($payload)),
+        'last_activity' => $lastActivity ?? now()->timestamp,
+    ]);
+}
+
+function phpSessionPayload(array $data): string
+{
+    $encoded = '';
+    foreach ($data as $key => $value) {
+        $encoded .= $key.'|'.serialize($value);
+    }
+
+    return $encoded;
 }

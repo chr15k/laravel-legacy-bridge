@@ -5,57 +5,83 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Console\Commands;
 
 use Chr15k\LegacyBridge\Middleware\LegacySessionBridge;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Laravel\Prompts\Elements\Element;
 
+use function Laravel\Prompts\callout;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
+
+#[Signature('legacy-bridge:install')]
+#[Description('Publish the legacy-bridge config and resolver stub')]
 final class InstallCommand extends Command
 {
-    protected $signature = 'legacy-bridge:install';
-
-    protected $description = 'Publish the legacy-bridge config and resolver stub';
-
     public function handle(): int
     {
-        $this->info('Installing laravel-legacy-bridge...');
-        $this->newLine();
+        note('laravel-legacy-bridge');
 
+        $this->publishConfig();
+        $this->publishStub();
+
+        callout(
+            label: 'Next Steps',
+            content: [
+                Element::numberedList([
+                    'Add credentials to .env (see below)',
+                    'Register the middleware in bootstrap/app.php (see below)',
+                    'Implement your resolver in app/Bridge/LegacyUserResolver.php',
+                    'Run: php artisan legacy-bridge:verify --session-id=YOUR_ID',
+                ]),
+            ],
+        );
+
+        note(implode(PHP_EOL, [
+            '  # .env',
+            '  LEGACY_DB_CONNECTION=legacy',
+            '  LEGACY_DB_HOST=127.0.0.1',
+            '  LEGACY_DB_DATABASE=your_legacy_db',
+            '  LEGACY_DB_USERNAME=your_user',
+            '  LEGACY_DB_PASSWORD=your_password',
+            '  LEGACY_SESSION_COOKIE=PHPSESSID',
+        ]));
+
+        note(implode(PHP_EOL, [
+            '  # bootstrap/app.php',
+            '  ->withMiddleware(function (Middleware $middleware) {',
+            '      $middleware->web(append: [',
+            '          '.LegacySessionBridge::class.'::class,',
+            '      ]);',
+            '  })',
+        ]));
+
+        callout(
+            label: 'Shared Database?',
+            content: [
+                'No new connection needed. Point LEGACY_DB_CONNECTION at your default connection.',
+                Element::keyValueList([
+                    'LEGACY_DB_CONNECTION' => 'mysql',
+                    'LEGACY_SESSION_TABLE' => 'sessions  (only if the table name differs)',
+                ]),
+            ],
+            type: 'warning',
+        );
+
+        outro('Installation complete. Run legacy-bridge:verify to confirm your setup.');
+
+        return self::SUCCESS;
+    }
+
+    private function publishConfig(): void
+    {
         $this->callSilently('vendor:publish', [
             '--tag'   => 'legacy-bridge-config',
             '--force' => false,
         ]);
-        $this->line('  <fg=green;options=bold>✓</> Config published → <comment>config/legacy-bridge.php</comment>');
 
-        $this->publishStub();
-
-        $this->newLine();
-        $this->warn('  Next steps:');
-        $this->line('  1. Add your legacy DB credentials to <comment>.env</comment>:');
-        $this->newLine();
-        $this->line('     <comment>LEGACY_DB_CONNECTION=legacy</comment>');
-        $this->line('     <comment>LEGACY_DB_HOST=127.0.0.1</comment>');
-        $this->line('     <comment>LEGACY_DB_DATABASE=your_legacy_db</comment>');
-        $this->line('     <comment>LEGACY_DB_USERNAME=your_user</comment>');
-        $this->line('     <comment>LEGACY_DB_PASSWORD=your_password</comment>');
-        $this->line('     <comment>LEGACY_SESSION_COOKIE=PHPSESSID</comment>');
-        $this->newLine();
-        $this->line('     <fg=yellow>Tip:</> If both apps share the same database, set <comment>LEGACY_DB_CONNECTION</comment>');
-        $this->line('     to your default connection (e.g. <comment>mysql</comment>) and skip adding a new');
-        $this->line('     connection entirely. Only set <comment>LEGACY_SESSION_TABLE</comment> if your legacy');
-        $this->line('     sessions table has a different name than <comment>sessions</comment>.');
-        $this->newLine();
-        $this->line('  2. Register the middleware in <comment>bootstrap/app.php</comment>:');
-        $this->newLine();
-        $this->line('     <comment>->withMiddleware(function (Middleware $middleware) {</comment>');
-        $this->line('     <comment>    $middleware->web(append: [</comment>');
-        $this->line('     <comment>        '.LegacySessionBridge::class.'::class,</comment>');
-        $this->line('     <comment>    ]);</comment>');
-        $this->line('     <comment>})</comment>');
-        $this->newLine();
-        $this->line('  3. Implement your resolver in <comment>app/Bridge/LegacyUserResolver.php</comment>');
-        $this->newLine();
-        $this->line('  4. Verify with: <comment>php artisan legacy-bridge:verify --session-id=YOUR_ID</comment>');
-        $this->newLine();
-
-        return self::SUCCESS;
+        info('Config published → config/legacy-bridge.php');
     }
 
     private function publishStub(): void
@@ -63,7 +89,7 @@ final class InstallCommand extends Command
         $destination = app_path('Bridge/LegacyUserResolver.php');
 
         if (file_exists($destination)) {
-            $this->line('  <fg=yellow;options=bold>↷</> Resolver already exists → <comment>app/Bridge/LegacyUserResolver.php</comment>');
+            info('Resolver already exists → app/Bridge/LegacyUserResolver.php');
 
             return;
         }
@@ -75,6 +101,6 @@ final class InstallCommand extends Command
         $stub = file_get_contents(__DIR__.'/../../../stubs/LegacyUserResolver.stub');
         file_put_contents($destination, $stub);
 
-        $this->line('  <fg=green;options=bold>✓</> Resolver stub published → <comment>app/Bridge/LegacyUserResolver.php</comment>');
+        info('Resolver stub published → app/Bridge/LegacyUserResolver.php');
     }
 }

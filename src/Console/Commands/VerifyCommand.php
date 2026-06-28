@@ -1,22 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Chr15k\LegacyBridge\Console\Commands;
 
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Resolvers\ResolverManager;
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Laravel\Prompts\Elements\Element;
 use Override;
 use Throwable;
 
+use function Laravel\Prompts\callout;
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\intro;
+use function Laravel\Prompts\note;
+use function Laravel\Prompts\outro;
+use function Laravel\Prompts\warning;
+
+#[Signature('legacy-bridge:verify
+    {--session-id= : A real legacy session ID to test resolution against}
+    {--connection= : Override the legacy DB connection for this check}')]
+#[Description('Verify the legacy-bridge configuration and optionally test a session ID')]
 final class VerifyCommand extends Command
 {
-    protected $signature = 'legacy-bridge:verify
-                            {--session-id= : A real legacy session ID to test resolution against}
-                            {--connection= : Override the legacy DB connection for this check}';
-
-    protected $description = 'Verify the legacy-bridge configuration and optionally test a session ID';
-
     public function __construct(
         private readonly PayloadDecoder $decoder,
         private readonly ResolverManager $resolverManager,
@@ -26,44 +37,38 @@ final class VerifyCommand extends Command
 
     public function handle(): int
     {
-        $this->newLine();
-        $this->line('  <fg=blue;options=bold>laravel-legacy-bridge — configuration check</>');
-        $this->newLine();
+        intro('laravel-legacy-bridge — configuration check');
 
-        $passed = true;
-        $passed = $this->checkConfig() && $passed;
-        $passed = $this->checkConnection() && $passed;
-        $passed = $this->checkResolver() && $passed;
-        $passed = $this->checkCookieAlignment() && $passed;
+        $passed = $this->checkConfig()
+            && $this->checkConnection()
+            && $this->checkResolver()
+            && $this->checkCookieAlignment();
 
         if ($sessionId = $this->option('session-id')) {
             $passed = $this->testSession($sessionId) && $passed;
         }
 
-        $this->newLine();
-
         if ($passed) {
-            $this->line('  <fg=green;options=bold>All checks passed.</>');
-            if (! $this->option('session-id')) {
-                $this->line('  Run with <comment>--session-id=YOUR_ID</comment> to test a real session.');
-            }
-        } else {
-            $this->line('  <fg=red;options=bold>Some checks failed — review the output above.</>');
+            $suffix = $this->option('session-id')
+                ? ''
+                : ' Run with --session-id=YOUR_ID to test a real session.';
+
+            outro('All checks passed.'.$suffix);
+
+            return self::SUCCESS;
         }
 
-        $this->newLine();
+        error('Some checks failed — review the output above.');
 
-        return $passed ? self::SUCCESS : self::FAILURE;
+        return self::FAILURE;
     }
 
     #[Override]
     public function fail(Throwable|string|null $exception = null): void
     {
-        if (is_string($exception)) {
-            $this->line('  <fg=red;options=bold>✗</> '.$exception);
-        } else {
-            parent::fail($exception);
-        }
+        is_string($exception)
+            ? error($exception)
+            : parent::fail($exception);
     }
 
     private function checkConfig(): bool
@@ -71,17 +76,24 @@ final class VerifyCommand extends Command
         $config = config('legacy-bridge');
 
         if (! $config) {
-            $this->fail('Config not found. Run: <comment>php artisan legacy-bridge:install</comment>');
+            error('Config not found. Run: php artisan legacy-bridge:install');
 
             return false;
         }
 
-        $this->pass('Config found: <comment>config/legacy-bridge.php</comment>');
-        $this->line(sprintf('     cookie      → <comment>%s</comment>', $config['cookie']));
-        $this->line(sprintf('     connection  → <comment>%s</comment>', $config['connection']));
-        $this->line(sprintf('     table       → <comment>%s</comment>', $config['table']));
-        $this->line(sprintf('     format      → <comment>%s</comment>', $config['format']));
-        $this->line(sprintf('     invalidation → <comment>%s</comment>', $config['invalidation']));
+        callout(
+            label: 'Config',
+            content: [
+                Element::keyValueList([
+                    'file'         => 'config/legacy-bridge.php',
+                    'cookie'       => $config['cookie'],
+                    'connection'   => $config['connection'],
+                    'table'        => $config['table'],
+                    'format'       => $config['format'],
+                    'invalidation' => $config['invalidation'],
+                ]),
+            ],
+        );
 
         return true;
     }
@@ -93,11 +105,11 @@ final class VerifyCommand extends Command
 
         try {
             $count = DB::connection($connection)->table($table)->count();
-            $this->pass(sprintf('Connected to <comment>%s.%s</comment> (%d sessions)', $connection, $table, $count));
+            info(sprintf('Connected to %s.%s (%d sessions)', $connection, $table, $count));
 
             return true;
         } catch (Throwable $throwable) {
-            $this->fail(sprintf('Cannot connect to <comment>%s.%s</comment>: %s', $connection, $table, $throwable->getMessage()));
+            error(sprintf('Cannot connect to %s.%s: %s', $connection, $table, $throwable->getMessage()));
 
             return false;
         }
@@ -107,12 +119,11 @@ final class VerifyCommand extends Command
     {
         try {
             $this->resolverManager->make();
-            $driver = config('legacy-bridge.resolver.driver', 'auto');
-            $this->pass(sprintf('Resolver ready: <comment>%s</comment>', $driver));
+            info(sprintf('Resolver ready: %s', config('legacy-bridge.resolver.driver', 'auto')));
 
             return true;
         } catch (Throwable $throwable) {
-            $this->fail('Resolver error: '.$throwable->getMessage());
+            error('Resolver error: '.$throwable->getMessage());
 
             return false;
         }
@@ -124,28 +135,22 @@ final class VerifyCommand extends Command
         $laravelCookie = config('session.cookie');
 
         if ($legacyCookie === $laravelCookie) {
-            $this->warn(
-                '  ⚠  Cookie collision: legacy cookie and Laravel session cookie '.
-                sprintf('are both <comment>%s</comment>. ', $legacyCookie).
-                'Set SESSION_COOKIE to a different value.'
-            );
+            warning(sprintf(
+                'Cookie collision: both legacy and Laravel are using "%s". Set SESSION_COOKIE to a different value.',
+                $legacyCookie,
+            ));
 
             return false;
         }
 
-        $this->pass(
-            sprintf('Cookie alignment OK: legacy=<comment>%s</comment> ', $legacyCookie).
-            sprintf('laravel=<comment>%s</comment>', $laravelCookie)
-        );
+        info(sprintf('Cookie alignment OK: legacy=%s  laravel=%s', $legacyCookie, $laravelCookie));
 
         return true;
     }
 
     private function testSession(string $sessionId): bool
     {
-        $this->newLine();
-        $this->line('  <fg=blue>Testing session ID:</> <comment>'.mb_substr($sessionId, 0, 12).'…</comment>');
-        $this->newLine();
+        note(sprintf('Testing session ID: %s…', mb_substr($sessionId, 0, 12)));
 
         $connection = $this->option('connection') ?? config('legacy-bridge.connection');
         $table = config('legacy-bridge.table');
@@ -157,65 +162,60 @@ final class VerifyCommand extends Command
             ->first();
 
         if (! $row) {
-            $this->fail(sprintf('Session <comment>%s</comment> not found in <comment>%s</comment>', $sessionId, $table));
+            error(sprintf('Session "%s" not found in %s', $sessionId, $table));
 
             return false;
         }
-
-        $this->pass('Session record found');
 
         $age = now()->diffInMinutes(now()->createFromTimestamp($row->last_activity));
         $expired = $age > $lifetime;
 
         if ($expired) {
-            $this->warn(sprintf('  ⚠  Session is %sm old (lifetime: %dm) — it would be rejected', $age, $lifetime));
-        } else {
-            $this->line(sprintf('     age → <comment>%sm</comment> (within %dm lifetime)', $age, $lifetime));
+            warning(sprintf('Session is %dm old (lifetime: %dm) — it would be rejected', $age, $lifetime));
         }
 
-        // Decode
         $format = config('legacy-bridge.format', 'auto');
         $payload = $this->decoder->decode($row->payload, $format);
 
-        $this->pass(sprintf('Payload decoded — format: <comment>%s</comment>', $payload->format()));
-
         if ($payload->isEmpty()) {
-            $this->fail('Decoded payload is empty — check format config');
+            error('Decoded payload is empty — check format config');
 
             return false;
         }
 
-        $this->line('     keys → <comment>'.implode(', ', array_keys($payload->all())).'</comment>');
-
-        // Resolve
         $resolver = $this->resolverManager->make();
         $userId = $resolver->resolve($payload);
 
         if (! $userId) {
-            $this->fail('Resolver returned null — no user ID found in payload');
+            error('Resolver returned null — no user ID found in payload');
 
             return false;
         }
 
-        $this->pass(sprintf('Resolver returned user ID: <comment>%s</comment>', $userId));
-
-        // Confirm user exists
         $model = config('auth.providers.users.model');
         $exists = $model::find($userId) !== null;
 
-        if ($exists) {
-            $this->pass(sprintf('User <comment>%s</comment> exists in the new application', $userId));
-        } else {
-            $this->fail(sprintf("User <comment>%s</comment> not found in the new application's users table", $userId));
+        if (! $exists) {
+            error(sprintf("User %s not found in the new application's users table", $userId));
 
             return false;
         }
 
-        return ! $expired;
-    }
+        callout(
+            label: 'Session resolved',
+            content: [
+                Element::keyValueList([
+                    'session_id' => mb_substr($sessionId, 0, 12).'…',
+                    'format'     => $payload->format(),
+                    'age'        => $age.'m (lifetime: '.$lifetime.'m)',
+                    'keys'       => implode(', ', array_keys($payload->all())),
+                    'user_id'    => (string) $userId,
+                    'user_found' => 'yes',
+                ]),
+            ],
+            type: $expired ? 'warning' : 'info',
+        );
 
-    private function pass(string $message): void
-    {
-        $this->line('  <fg=green;options=bold>✓</> '.$message);
+        return ! $expired;
     }
 }

@@ -5,7 +5,7 @@ namespace Workbench\App\Bridge;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver as LegacyUserResolverContract;
 
-class LegacyUserResolver implements LegacyUserResolverContract
+final class LegacyUserResolver implements LegacyUserResolverContract
 {
     /**
      * Resolve a user ID from the decoded legacy session payload.

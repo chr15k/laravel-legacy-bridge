@@ -13,9 +13,9 @@ return Application::configure(basePath: $APP_BASE_PATH ?? default_skeleton_path(
         commands: __DIR__.'/../routes/console.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-         $middleware->web(append: [
+        $middleware->web(append: [
             LegacySessionBridge::class,
-         ]);
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
