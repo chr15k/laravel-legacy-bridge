@@ -437,6 +437,12 @@ LEGACY_RESOLVER_KEY=user_id
 
 ---
 
+## User Guide
+
+See [GUIDE.md](GUIDE.md).
+
+---
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
