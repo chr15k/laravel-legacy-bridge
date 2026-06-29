@@ -1,10 +1,10 @@
 <?php
 
-namespace Chr15k\LegacyBridge\Resolvers;
+namespace Chr15k\LegacyBridge;
 
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
-use Chr15k\LegacyBridge\Resolvers\Drivers\AutoResolver;
-use Chr15k\LegacyBridge\Resolvers\Drivers\KeyResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Resolvers\AutoResolver;
+use Chr15k\LegacyBridge\Resolvers\KeyResolver;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 

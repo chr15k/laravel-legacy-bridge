@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge;
 
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 
 final class Config
 {

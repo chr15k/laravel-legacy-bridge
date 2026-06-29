@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chr15k\LegacyBridge\Resolvers\Contracts;
+namespace Chr15k\LegacyBridge\Contracts;
 
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 

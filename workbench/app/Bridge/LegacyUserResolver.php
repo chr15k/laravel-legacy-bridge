@@ -2,8 +2,8 @@
 
 namespace Workbench\App\Bridge;
 
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver as LegacyUserResolverContract;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver as LegacyUserResolverContract;
 
 final class LegacyUserResolver implements LegacyUserResolverContract
 {

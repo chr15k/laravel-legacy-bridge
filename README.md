@@ -103,7 +103,7 @@ In `bootstrap/app.php`:
 ```php
 ->withMiddleware(function (Middleware $middleware) {
     $middleware->web(append: [
-        \Chr15k\LegacyBridge\Middleware\LegacySessionBridge::class,
+        \Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge::class,
     ]);
 })
 ```
@@ -119,7 +119,7 @@ The install command publishes a stub to `app/Bridge/LegacyUserResolver.php`. Fil
 namespace App\Bridge;
 
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver as Contract;
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver as Contract;
 
 class LegacyUserResolver implements Contract
 {
@@ -245,7 +245,7 @@ To carry session keys beyond auth state (locale, timezone, cart ID, etc.), set `
 For full control, bind a `LegacyContextResolver` in a service provider:
 
 ```php
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyContextResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 
 $this->app->singleton(LegacyContextResolver::class, function () {
     return new class implements LegacyContextResolver {

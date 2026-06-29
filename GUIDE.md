@@ -130,7 +130,7 @@ In `bootstrap/app.php` (Laravel 11+):
     ]);
 
     $middleware->web(append: [
-        \Chr15k\LegacyBridge\Middleware\LegacySessionBridge::class,
+        \Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge::class,
     ]);
 })
 ```
@@ -148,7 +148,7 @@ Open `app/Bridge/LegacyUserResolver.php` (published by the install command):
 namespace App\Bridge;
 
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver as Contract;
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver as Contract;
 
 class LegacyUserResolver implements Contract
 {
@@ -328,7 +328,7 @@ For full control, implement `LegacyContextResolver` and bind it in a service pro
 
 ```php
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyContextResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 
 $this->app->singleton(LegacyContextResolver::class, function () {
     return new class implements LegacyContextResolver {

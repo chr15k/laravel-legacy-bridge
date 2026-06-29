@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Tests;
 
-use Chr15k\LegacyBridge\Middleware\LegacySessionBridge;
+use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Router;

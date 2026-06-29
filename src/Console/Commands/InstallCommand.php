@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Console\Commands;
 
-use Chr15k\LegacyBridge\Middleware\LegacySessionBridge;
+use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;

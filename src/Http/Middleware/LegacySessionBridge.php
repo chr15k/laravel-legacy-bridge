@@ -1,12 +1,12 @@
 <?php
 
-namespace Chr15k\LegacyBridge\Middleware;
+namespace Chr15k\LegacyBridge\Http\Middleware;
 
 use Chr15k\LegacyBridge\Config;
+use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyContextResolver;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
 use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Auth\StatefulGuard;

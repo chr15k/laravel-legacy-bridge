@@ -4,11 +4,10 @@ namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Console\Commands\InstallCommand;
 use Chr15k\LegacyBridge\Console\Commands\VerifyCommand;
-use Chr15k\LegacyBridge\Middleware\LegacySessionBridge;
+use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyContextResolver;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
-use Chr15k\LegacyBridge\Resolvers\ResolverManager;
 use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;

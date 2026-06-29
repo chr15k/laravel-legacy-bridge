@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Chr15k\LegacyBridge\Resolvers\Drivers;
+namespace Chr15k\LegacyBridge\Resolvers;
 
+use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
-use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
 
 /**
  * Resolves a user ID from a dot-notation key in the payload.

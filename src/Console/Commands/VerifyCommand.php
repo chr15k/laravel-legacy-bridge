@@ -6,7 +6,7 @@ namespace Chr15k\LegacyBridge\Console\Commands;
 
 use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
-use Chr15k\LegacyBridge\Resolvers\ResolverManager;
+use Chr15k\LegacyBridge\ResolverManager;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
