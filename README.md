@@ -439,14 +439,13 @@ LEGACY_RESOLVER_KEY=user_id
 
 ## User Guide
 
-See [GUIDE.md](GUIDE.md).
+See [GUIDE.md](GUIDE.md)
 
----
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md).
+See [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE.md).
+MIT. See [LICENSE](LICENSE.md)
