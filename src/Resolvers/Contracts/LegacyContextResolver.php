@@ -21,6 +21,8 @@ interface LegacyContextResolver
      *   {
      *       return $payload->only(['locale', 'timezone', 'cart_id']);
      *   }
+     *
+     * @return array<string, mixed> An associative array of session keys and values to carry into Laravel's session.
      */
     public function resolve(?int $userId, LegacyPayload $payload): array;
 }

@@ -373,59 +373,48 @@ return [
 
 ---
 
-## Security & Best Practice
+## Security
 
-### The bridge does not introduce new attack vectors
+### Trust model
 
-The package authenticates users based on a session ID that must already exist in your legacy
-database. An attacker cannot forge or guess their way in — a valid row in the legacy sessions
-table is required. The security posture of the bridge is therefore equivalent to the legacy
-application itself: if the legacy app was secure, the bridge is secure.
+The security primitive is the session cookie. Possession of a valid `PHPSESSID` cookie that matches a row in the legacy sessions table is proof that the legacy application already authenticated that user. The bridge honours that existing authentication decision — it does not re-authenticate, it continues a session across the application boundary.
 
-The realistic threats are the same ones that applied to your legacy app before the migration began.
+This is the same trust model as any session-based application. The bridge adds one extra hop (the legacy DB lookup) but the security primitive is identical to what the legacy app itself used.
 
-### Session hijacking
+### The bridge inherits the legacy app's security posture
 
-If an attacker intercepts a real user's `PHPSESSID` cookie (via network sniffing on plain HTTP,
-XSS, or similar), they can present it to the Laravel app and be authenticated as that user. This
-is standard session hijacking — not specific to the bridge.
+The package authenticates users based on a session ID that must already exist in your legacy database — an attacker cannot forge or guess their way in without a valid row. If your legacy application was secure, the bridge is secure. The realistic threats are the same ones that existed before the migration began.
 
-**Mitigation:** enforce HTTPS across both applications. The legacy cookie is excluded from
-Laravel's `EncryptCookies` middleware by design (it was not set by Laravel), so it travels as
-plain text. HTTPS is non-negotiable.
+### HTTPS is required
 
-### Legacy database access
+The legacy cookie is excluded from Laravel's `EncryptCookies` middleware by design — it was not set by your new application. This means it travels as plain text, the same way it did on the legacy app. Enforce HTTPS across both applications.
 
-If an attacker gains write access to the legacy sessions table, they can insert a row with a
-known ID and authenticate as any user. At that point the session bridge is the least of your
-concerns — treat legacy DB access as a critical breach regardless.
+### Payload trust
+
+Laravel's own session handler encrypts and signs the session payload using `APP_KEY`. Legacy payloads have no equivalent — they are trusted by virtue of the session ID matching a row in the legacy DB, which is trusted by virtue of the cookie.
+
+In practice this is fine: an attacker with DB write access can construct an entire fraudulent session row, so HMAC verification of the payload alone would not meaningfully change the threat model. The cookie is the trust anchor.
+
+That said, keep `carry_keys` to the minimum necessary. The bridge resolves a user ID and calls `Auth::loginUsingId()` — treat everything else in the legacy payload as untrusted input.
+
+### Invalidation
+
+The default `after_write` strategy deletes the legacy session after Laravel writes its own, meaning each legacy session can only be bridged once. A stolen session ID cannot be replayed after the legitimate user has already crossed over.
+
+Avoid `never` in production — it leaves session rows in the legacy DB indefinitely.
 
 ### Keep the migration window short
 
-Every day the bridge is active is another day the legacy sessions table is part of your
-application's trust boundary. Monitor the `legacy-bridge: session bridged` log entries — when
-they stop appearing, the migration is complete. Remove the middleware and uninstall the package
-as soon as possible.
+Monitor the `legacy-bridge: session bridged` log entries. When they stop appearing, the migration is complete — remove the middleware and uninstall the package. The legacy sessions table should not be part of your trust boundary any longer than necessary.
 
 ```dotenv
 LEGACY_BRIDGE_LOGGING=true
 LEGACY_BRIDGE_LOG_CHANNEL=stack
 ```
 
-### Invalidation strategy
-
-The default `after_write` strategy deletes the legacy session immediately after Laravel writes
-its own. This means each legacy session can only ever be bridged once — a stolen session ID
-cannot be replayed after the legitimate user has already been migrated.
-
-Avoid `never` in production. It leaves legacy session rows in the database indefinitely,
-extending the window in which a stolen session ID remains usable.
-
 ### User eligibility
 
-The package calls `Auth::loginUsingId()` without checking whether the user is active, verified,
-or permitted to access the new application. Any such checks should be applied via Laravel's
-authentication events or your `User` model:
+`Auth::loginUsingId()` does not check whether a user is active, verified, or banned. Apply any such checks via Laravel's authentication events:
 
 ```php
 use Illuminate\Auth\Events\Login;
@@ -439,8 +428,7 @@ protected $listen = [
 
 ### Use an explicit resolver in production
 
-The `auto` resolver tries a sequence of known payload paths. Switch to `key` or `custom` before
-going to production so the user identity path is explicit and unambiguous:
+The `auto` resolver tries a sequence of known payload paths which is useful during setup, but switch to `key` or `custom` before going to production so the user identity path is unambiguous:
 
 ```dotenv
 LEGACY_RESOLVER_DRIVER=key

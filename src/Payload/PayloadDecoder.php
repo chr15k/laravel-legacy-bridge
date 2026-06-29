@@ -56,11 +56,11 @@ final class PayloadDecoder
         return 'unknown';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function decodePhpSession(string $raw): array
     {
-        // PHP's session_decode() only operates on the active session,
-        // so we parse the native encoding manually.
-        // Format: varname|serialized_value;varname|serialized_value
         $segments = preg_split(
             '/([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)\|/',
             $raw,
@@ -68,10 +68,25 @@ final class PayloadDecoder
             PREG_SPLIT_DELIM_CAPTURE,
         );
 
+        if ($segments === false) {
+            return [];
+        }
+
         $vars = [];
         $counter = count($segments);
+
         for ($i = 1; $i < $counter; $i += 2) {
-            $value = @unserialize($segments[$i + 1] ?? '');
+            $segment = $segments[$i + 1] ?? '';
+            if ($segment === '') {
+                continue;
+            }
+
+            if ($segment === '0') {
+                continue;
+            }
+
+            $value = @unserialize($segment);
+
             if ($value !== false) {
                 $vars[$segments[$i]] = $value;
             }
@@ -80,6 +95,9 @@ final class PayloadDecoder
         return $vars;
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function decodeJson(string $raw): array
     {
         // Try base64-encoded JSON first, then raw JSON
@@ -92,9 +110,14 @@ final class PayloadDecoder
             }
         }
 
-        return json_decode($raw, true) ?? [];
+        $result = json_decode($raw, true);
+
+        return is_array($result) ? $result : [];
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function decodeLaravel(string $raw): array
     {
         $decoded = base64_decode($raw, strict: true);
@@ -108,11 +131,14 @@ final class PayloadDecoder
         return is_array($data) ? $data : [];
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function decodeEncrypted(string $raw): array
     {
         $key = config('legacy-bridge.legacy_app_key');
 
-        if (! $key) {
+        if (! $key || ! is_string($key)) {
             throw new RuntimeException(
                 'legacy-bridge: format is "encrypted" but legacy_app_key is not set in config/legacy-bridge.php'
             );
@@ -128,6 +154,10 @@ final class PayloadDecoder
 
         if (is_array($decrypted)) {
             return $decrypted;
+        }
+
+        if (! is_string($decrypted)) {
+            return [];
         }
 
         $data = @unserialize($decrypted);

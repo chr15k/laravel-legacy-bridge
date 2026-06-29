@@ -2,12 +2,14 @@
 
 namespace Chr15k\LegacyBridge\Middleware;
 
+use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Resolvers\Contracts\LegacyUserResolver;
 use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
+use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +25,9 @@ final readonly class LegacySessionBridge
         private ?LegacyContextResolver $contextResolver = null,
     ) {}
 
+    /**
+     * @param  Closure(Request): (Response)  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
         if (! $this->shouldBridge($request)) {
@@ -40,9 +45,11 @@ final readonly class LegacySessionBridge
         $response = $next($request);
 
         if ($this->shouldInvalidateAfterWrite()) {
-            $this->invalidateLegacySession(
-                $request->cookie($this->cookieName())
-            );
+            $cookieValue = $request->cookie($this->cookieName());
+
+            if (is_string($cookieValue)) {
+                $this->invalidateLegacySession($cookieValue);
+            }
         }
 
         return $response;
@@ -60,6 +67,11 @@ final readonly class LegacySessionBridge
     private function bridge(Request $request): void
     {
         $sessionId = $request->cookie($this->cookieName());
+
+        if (! is_string($sessionId)) {
+            return;
+        }
+
         $row = $this->fetchLegacySession($sessionId);
 
         if ($row === null) {
@@ -68,7 +80,7 @@ final readonly class LegacySessionBridge
 
         $payload = $this->decoder->decode(
             $row->payload,
-            config('legacy-bridge.format', 'auto'),
+            Config::format(),
         );
 
         if ($payload->isEmpty()) {
@@ -81,10 +93,14 @@ final readonly class LegacySessionBridge
             return;
         }
 
-        $this->auth->guard()->loginUsingId($userId);
+        /** @var StatefulGuard $guard */
+        $guard = $this->auth->guard();
+
+        $guard->loginUsingId($userId);
+
         $this->hydrateContext($userId, $payload);
 
-        if (config('legacy-bridge.invalidation') === 'immediate') {
+        if (Config::invalidation() === 'immediate') {
             $this->invalidateLegacySession($sessionId);
         }
 
@@ -95,30 +111,63 @@ final readonly class LegacySessionBridge
         ]);
     }
 
+    /**
+     * @return object{
+     *   id: string,
+     *   user_id: ?int,
+     *   ip_address: ?string,
+     *   user_agent: ?string,
+     *   payload: string,
+     *   last_activity: int
+     * }|null
+     */
     private function fetchLegacySession(string $sessionId): ?object
     {
-        $lifetime = (int) config('legacy-bridge.lifetime', 120);
-
-        return DB::connection(config('legacy-bridge.connection'))
-            ->table(config('legacy-bridge.table'))
+        /**
+         * @var object{
+         *   id: string,
+         *   user_id: ?int,
+         *   ip_address: ?string,
+         *   user_agent: ?string,
+         *   payload: string,
+         *   last_activity: int
+         * }|null
+         */
+        return DB::connection(Config::connection())
+            ->table(Config::table())
             ->where('id', $sessionId)
-            ->where('last_activity', '>', now()->subMinutes($lifetime)->timestamp)
+            ->where('last_activity', '>', now()->subMinutes(Config::lifetime())->timestamp)
             ->first();
     }
 
     private function hydrateContext(int $userId, LegacyPayload $payload): void
     {
-        $carryKeys = config('legacy-bridge.context.carry_keys', []);
+        $carryKeys = Config::contextCarryKeys();
 
-        if (! empty($carryKeys)) {
-            foreach ($payload->only($carryKeys) as $key => $value) {
-                session([$key => $value]);
-            }
+        if ($carryKeys !== []) {
+            /** @var array<string, mixed> $context */
+            $context = $payload->only($carryKeys);
+            session($context);
         }
 
-        if (config('legacy-bridge.context.flash', false)) {
-            $flash = $payload->get('_flash', []);
-            foreach ((array) ($flash['new'] ?? []) as $key) {
+        if (Config::contextFlash()) {
+            $flash = $payload->get('_flash');
+
+            if (! is_array($flash)) {
+                return;
+            }
+
+            $new = $flash['new'] ?? [];
+
+            if (! is_array($new)) {
+                return;
+            }
+
+            foreach ($new as $key) {
+                if (! is_string($key)) {
+                    continue;
+                }
+
                 session()->flash($key, $payload->get($key));
             }
         }
@@ -132,13 +181,13 @@ final readonly class LegacySessionBridge
 
     private function invalidateLegacySession(string $sessionId): void
     {
-        if (config('legacy-bridge.invalidation') === 'never') {
+        if (Config::invalidation() === 'never') {
             return;
         }
 
         try {
-            DB::connection(config('legacy-bridge.connection'))
-                ->table(config('legacy-bridge.table'))
+            DB::connection(Config::connection())
+                ->table(Config::table())
                 ->where('id', $sessionId)
                 ->delete();
         } catch (Throwable $throwable) {
@@ -150,22 +199,26 @@ final readonly class LegacySessionBridge
 
     private function shouldInvalidateAfterWrite(): bool
     {
-        return config('legacy-bridge.invalidation') === 'after_write';
+        return Config::invalidation() === 'after_write';
     }
 
     private function cookieName(): string
     {
-        return config('legacy-bridge.cookie', 'PHPSESSID');
+        return Config::cookie();
     }
 
+    /**
+     * @param  array<mixed>  $context
+     */
     private function log(string $level, string $message, array $context = []): void
     {
-        if (! config('legacy-bridge.logging.enabled', true)) {
+        if (! Config::loggingEnabled()) {
             return;
         }
 
-        $channel = config('legacy-bridge.logging.channel');
-        $logger = $channel ? Log::channel($channel) : Log::getFacadeRoot();
+        $channel = Config::loggingChannel();
+
+        $logger = is_string($channel) ? Log::channel($channel) : Log::getFacadeRoot();
 
         $logger->{$level}('legacy-bridge: '.$message, $context);
     }

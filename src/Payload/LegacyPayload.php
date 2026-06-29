@@ -13,10 +13,10 @@ use Illuminate\Support\Arr;
  */
 final readonly class LegacyPayload
 {
-    public function __construct(
-        private array $data,
-        private string $format,
-    ) {}
+    /**
+     * @param  array<mixed>  $data
+     */
+    public function __construct(private array $data, private string $format) {}
 
     /**
      * Get a value from the payload using dot-notation.
@@ -53,17 +53,24 @@ final readonly class LegacyPayload
     {
         $value = $this->get($path);
 
-        return match (true) {
-            is_int($value)    => $value,
-            is_string($value) => (int) $value ?: null,
-            is_object($value) => isset($value->id) ? (int) $value->id : null,
-            is_array($value)  => isset($value['id']) ? (int) $value['id'] : null,
-            default           => null,
+        $scalar = match (true) {
+            is_int($value) || is_string($value) => $value,
+            is_object($value)                   => $value->id ?? null,
+            is_array($value)                    => $value['id'] ?? null,
+            default                             => null,
         };
+
+        if (! is_int($scalar) && ! is_string($scalar)) {
+            return null;
+        }
+
+        return (int) $scalar ?: null;
     }
 
     /**
      * Return the raw decoded payload as an array.
+     *
+     * @return array<mixed>
      */
     public function all(): array
     {
@@ -72,6 +79,9 @@ final readonly class LegacyPayload
 
     /**
      * Return only the specified keys from the payload.
+     *
+     * @param  list<string>  $keys
+     * @return array<mixed>
      */
     public function only(array $keys): array
     {

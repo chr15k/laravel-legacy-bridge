@@ -52,7 +52,7 @@ describe('php_session decoding', function (): void {
         $raw = 'user|'.serialize($user).';';
         $payload = $this->decoder->decode($raw, 'php_session');
 
-        expect($payload->get('user.id'))->toBe(99);
+        expect($payload->get('user')->id)->toBe(99);
     });
 });
 

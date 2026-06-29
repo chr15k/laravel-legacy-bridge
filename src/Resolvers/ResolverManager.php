@@ -16,8 +16,13 @@ final readonly class ResolverManager
 
     public function make(): LegacyUserResolver
     {
+        /** @var array{
+         *    driver: string,
+         *    class?: class-string<LegacyUserResolver>,
+         *    key?: string
+         * } $config */
         $config = config('legacy-bridge.resolver');
-        $driver = $config['driver'] ?? 'auto';
+        $driver = $config['driver'];
 
         return match ($driver) {
             'auto'   => new AutoResolver,

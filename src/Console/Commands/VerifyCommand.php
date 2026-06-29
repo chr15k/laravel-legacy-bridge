@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Console\Commands;
 
+use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Resolvers\ResolverManager;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Laravel\Prompts\Elements\Element;
 use Override;
@@ -44,7 +46,8 @@ final class VerifyCommand extends Command
             && $this->checkResolver()
             && $this->checkCookieAlignment();
 
-        if ($sessionId = $this->option('session-id')) {
+        $sessionId = $this->option('session-id');
+        if ($sessionId && is_string($sessionId)) {
             $passed = $this->testSession($sessionId) && $passed;
         }
 
@@ -66,9 +69,11 @@ final class VerifyCommand extends Command
     #[Override]
     public function fail(Throwable|string|null $exception = null): void
     {
-        is_string($exception)
-            ? error($exception)
-            : parent::fail($exception);
+        if (is_string($exception)) {
+            error($exception);
+        }
+
+        parent::fail($exception);
     }
 
     private function checkConfig(): bool
@@ -86,11 +91,11 @@ final class VerifyCommand extends Command
             content: [
                 Element::keyValueList([
                     'file'         => 'config/legacy-bridge.php',
-                    'cookie'       => $config['cookie'],
-                    'connection'   => $config['connection'],
-                    'table'        => $config['table'],
-                    'format'       => $config['format'],
-                    'invalidation' => $config['invalidation'],
+                    'cookie'       => Config::cookie(),
+                    'connection'   => Config::connection(),
+                    'table'        => Config::table(),
+                    'format'       => Config::format(),
+                    'invalidation' => Config::invalidation(),
                 ]),
             ],
         );
@@ -100,8 +105,15 @@ final class VerifyCommand extends Command
 
     private function checkConnection(): bool
     {
-        $connection = $this->option('connection') ?? config('legacy-bridge.connection');
-        $table = config('legacy-bridge.table');
+        $connection = $this->option('connection') ?? Config::connection();
+
+        if (! is_string($connection)) {
+            error('Connection is not configured - check config("legacy-bridge.connection")');
+
+            return false;
+        }
+
+        $table = Config::table();
 
         try {
             $count = DB::connection($connection)->table($table)->count();
@@ -119,7 +131,7 @@ final class VerifyCommand extends Command
     {
         try {
             $this->resolverManager->make();
-            info(sprintf('Resolver ready: %s', config('legacy-bridge.resolver.driver', 'auto')));
+            info(sprintf('Resolver ready: %s', Config::resolverDriver()));
 
             return true;
         } catch (Throwable $throwable) {
@@ -131,8 +143,13 @@ final class VerifyCommand extends Command
 
     private function checkCookieAlignment(): bool
     {
-        $legacyCookie = config('legacy-bridge.cookie');
+        $legacyCookie = Config::cookie();
         $laravelCookie = config('session.cookie');
+        if (! is_string($laravelCookie)) {
+            error('Laravel session cookie not configured - check config("session.cookie")');
+
+            return false;
+        }
 
         if ($legacyCookie === $laravelCookie) {
             warning(sprintf(
@@ -152,10 +169,17 @@ final class VerifyCommand extends Command
     {
         note(sprintf('Testing session ID: %s…', mb_substr($sessionId, 0, 12)));
 
-        $connection = $this->option('connection') ?? config('legacy-bridge.connection');
-        $table = config('legacy-bridge.table');
-        $lifetime = (int) config('legacy-bridge.lifetime', 120);
+        $connection = $this->option('connection') ?? Config::connection();
+        $table = Config::table();
+        $lifetime = Config::lifetime();
 
+        if (! is_string($connection)) {
+            error('Connection not configured - check config("legacy-bridge.connection")');
+
+            return false;
+        }
+
+        /** @var object{id: string, payload: string, last_activity: int}|null */
         $row = DB::connection($connection)
             ->table($table)
             ->where('id', $sessionId)
@@ -174,8 +198,7 @@ final class VerifyCommand extends Command
             warning(sprintf('Session is %dm old (lifetime: %dm) — it would be rejected', $age, $lifetime));
         }
 
-        $format = config('legacy-bridge.format', 'auto');
-        $payload = $this->decoder->decode($row->payload, $format);
+        $payload = $this->decoder->decode($row->payload, Config::format());
 
         if ($payload->isEmpty()) {
             error('Decoded payload is empty — check format config');
@@ -183,8 +206,7 @@ final class VerifyCommand extends Command
             return false;
         }
 
-        $resolver = $this->resolverManager->make();
-        $userId = $resolver->resolve($payload);
+        $userId = $this->resolverManager->make()->resolve($payload);
 
         if (! $userId) {
             error('Resolver returned null — no user ID found in payload');
@@ -192,11 +214,8 @@ final class VerifyCommand extends Command
             return false;
         }
 
-        $model = config('auth.providers.users.model');
-        $exists = $model::find($userId) !== null;
-
-        if (! $exists) {
-            error(sprintf("User %s not found in the new application's users table", $userId));
+        if (! $this->userExists($userId)) {
+            error(sprintf("User %d not found in the new application's users table", $userId));
 
             return false;
         }
@@ -217,5 +236,20 @@ final class VerifyCommand extends Command
         );
 
         return ! $expired;
+    }
+
+    private function userExists(int $userId): bool
+    {
+        $modelClass = config('auth.providers.users.model');
+
+        if (! is_string($modelClass) || ! class_exists($modelClass)) {
+            return false;
+        }
+
+        if (! is_subclass_of($modelClass, Model::class)) {
+            return false;
+        }
+
+        return $modelClass::query()->where('id', $userId)->exists();
     }
 }
