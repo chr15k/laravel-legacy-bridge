@@ -3,6 +3,9 @@ laravel: '@testbench'
 providers:
   - Workbench\App\Providers\WorkbenchServiceProvider
 
+bootstrap:
+  - workbench/bootstrap/app.php
+
 migrations:
   - workbench/database/migrations
 
@@ -11,9 +14,11 @@ seeders:
 
 env:
   SESSION_DRIVER: database
-  LEGACY_SESSION_FORMAT: encrypted
   LEGACY_APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
   APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
+  LEGACY_DB_CONNECTION: sqlite
+  LEGACY_SESSION_TABLE: legacy_sessions
+  LEGACY_SESSION_COOKIE: legacy-test-session
 
 workbench:
   start: '/'

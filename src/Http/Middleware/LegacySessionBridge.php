@@ -11,6 +11,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,6 +45,7 @@ final readonly class LegacySessionBridge
 
         $response = $next($request);
 
+        // @todo - if bridge fails, we still remove the legacy entry - is this expected?
         if ($this->shouldInvalidateAfterWrite()) {
             $cookieValue = $request->cookie($this->cookieName());
 
@@ -190,6 +192,7 @@ final readonly class LegacySessionBridge
                 ->table(Config::table())
                 ->where('id', $sessionId)
                 ->delete();
+            Cookie::queue(Cookie::forget($sessionId));
         } catch (Throwable $throwable) {
             $this->log('warning', 'could not invalidate legacy session', [
                 'error' => $throwable->getMessage(),

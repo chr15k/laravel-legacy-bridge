@@ -2,6 +2,9 @@
 
 namespace Workbench\App\Providers;
 
+use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 final class WorkbenchServiceProvider extends ServiceProvider
@@ -17,8 +20,11 @@ final class WorkbenchServiceProvider extends ServiceProvider
     /**
      * Bootstrap services.
      */
-    public function boot(): void
+    public function boot(Router $router): void
     {
-        //
+        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware) {
+            $middleware->disableFor(env('LEGACY_SESSION_COOKIE', 'PHPSESSID'));
+        });
+        $router->prependMiddlewareToGroup('web', LegacySessionBridge::class);
     }
 }

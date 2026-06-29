@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Tests;
 
 use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
+use Chr15k\LegacyBridge\LegacyBridgeServiceProvider;
 use Illuminate\Contracts\Config\Repository;
-use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use Orchestra\Testbench\TestCase as BaseTestCase;
@@ -16,12 +15,13 @@ abstract class TestCase extends BaseTestCase
 {
     use WithWorkbench;
 
-    /**
-     * Define environment setup.
-     *
-     * @param  \Illuminate\Foundation\Application  $app
-     * @return void
-     */
+    protected function getPackageProviders($app)
+    {
+        return [
+            LegacyBridgeServiceProvider::class
+        ];
+    }
+
     protected function defineEnvironment($app)
     {
         tap($app['config'], function (Repository $config): void {
