@@ -25,6 +25,8 @@ abstract class TestCase extends BaseTestCase
     protected function defineEnvironment($app)
     {
         tap($app['config'], function (Repository $config): void {
+            $config->set('app.key', 'base64:XGLICHd7JGDHe/NF8j7pxDzdPAddQufOFJ0mE8U9V7s=');
+
             $config->set('database.default', 'testbench');
 
             $config->set('database.connections.testbench', [
