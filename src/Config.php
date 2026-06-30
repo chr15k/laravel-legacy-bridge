@@ -16,6 +16,7 @@ final class Config
      *     lifetime: int,
      *     format: string,
      *     legacy_app_key: string|null,
+     *     cookie_encryption: string,
      *     resolver: array{
      *         driver: string,
      *         key: string,

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Console\Commands\InstallCommand;
