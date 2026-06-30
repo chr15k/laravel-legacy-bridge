@@ -2,12 +2,12 @@
 
 namespace Chr15k\LegacyBridge\Payload;
 
-use Illuminate\Encryption\Encrypter;
-use Illuminate\Support\Str;
-use RuntimeException;
+use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 
 final class PayloadDecoder
 {
+    use DecryptsLegacySessionData;
+
     public function decode(string $raw, string $format = 'auto'): LegacyPayload
     {
         if ($format === 'auto') {
@@ -18,7 +18,7 @@ final class PayloadDecoder
             'php_session' => $this->decodePhpSession($raw),
             'json'        => $this->decodeJson($raw),
             'laravel'     => $this->decodeLaravel($raw),
-            'encrypted'   => $this->decodeEncrypted($raw),
+            'encrypted'   => $this->decrypt(payload: $raw),
             default       => [],
         };
 
@@ -27,33 +27,31 @@ final class PayloadDecoder
 
     public function detect(string $raw): string
     {
-        // PHP native session encoding: key|serialized_value;
         if (preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*\|/', $raw)) {
             return 'php_session';
         }
 
-        // Attempt base64 decode — covers Laravel and base64-wrapped JSON
         $decoded = base64_decode($raw, strict: true);
 
         if ($decoded !== false) {
-            // Laravel session: base64(serialize(array))
             $unserialized = @unserialize($decoded);
             if (is_array($unserialized)) {
-                return 'laravel';
+                return 'laravel'; // genuinely unserializes cleanly
             }
 
-            // base64-encoded JSON
             if (is_array(json_decode($decoded, true))) {
                 return 'json';
             }
         }
 
-        // Raw JSON
         if (is_array(json_decode($raw, true))) {
             return 'json';
         }
 
-        return 'unknown';
+        // Doesn't match any known plain format — likely encrypted, but
+        // auto-detection can't confirm this without the legacy_app_key.
+        // Surface this clearly rather than silently returning 'unknown'.
+        return config('legacy-bridge.legacy_app_key') ? 'encrypted' : 'unknown';
     }
 
     /**
@@ -100,7 +98,6 @@ final class PayloadDecoder
      */
     private function decodeJson(string $raw): array
     {
-        // Try base64-encoded JSON first, then raw JSON
         $decoded = base64_decode($raw, strict: true);
 
         if ($decoded !== false) {
@@ -126,41 +123,11 @@ final class PayloadDecoder
             return [];
         }
 
-        $data = @unserialize($decoded);
-
-        return is_array($data) ? $data : [];
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    private function decodeEncrypted(string $raw): array
-    {
-        $key = config('legacy-bridge.legacy_app_key');
-
-        if (! $key || ! is_string($key)) {
-            throw new RuntimeException(
-                'legacy-bridge: format is "encrypted" but legacy_app_key is not set in config/legacy-bridge.php'
-            );
+        if (json_validate($decoded)) {
+            return json_decode($decoded, true) ?: [];
         }
 
-        $keyBytes = Str::startsWith($key, 'base64:')
-            ? base64_decode(Str::after($key, 'base64:'))
-            : $key;
-
-        $encrypter = new Encrypter($keyBytes, 'AES-256-CBC');
-
-        $decrypted = $encrypter->decrypt($raw);
-
-        if (is_array($decrypted)) {
-            return $decrypted;
-        }
-
-        if (! is_string($decrypted)) {
-            return [];
-        }
-
-        $data = @unserialize($decrypted);
+        $data = unserialize($decoded, ['allowed_classes' => false]);
 
         return is_array($data) ? $data : [];
     }

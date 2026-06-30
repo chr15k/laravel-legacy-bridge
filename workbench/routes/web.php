@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/' , function () {
+Route::get('/', function () {
     dump(config('legacy-bridge'));
     // dump(Cookie::get('legacy-test-session'));
 });

@@ -1,6 +1,5 @@
 <?php
 
-use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

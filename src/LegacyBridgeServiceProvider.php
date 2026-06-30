@@ -10,6 +10,7 @@ use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
@@ -41,6 +42,10 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware): void {
+            $middleware->disableFor(Config::cookie());
+        });
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/legacy-bridge.php' => config_path('legacy-bridge.php'),

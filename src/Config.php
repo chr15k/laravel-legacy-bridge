@@ -60,6 +60,16 @@ final class Config
         return is_int($value) ? $value : (int) (is_string($value) ? $value : 120);
     }
 
+    public static function shouldDecryptLegacySession(): bool
+    {
+        return self::format() === 'encrypted' && self::legacyAppKey() !== null;
+    }
+
+    public static function cookieEncryption(): string
+    {
+        return self::string('legacy-bridge.cookie_encryption', 'none');
+    }
+
     public static function format(): string
     {
         return self::string('legacy-bridge.format', 'auto');

@@ -2,6 +2,7 @@
 
 namespace Chr15k\LegacyBridge\Http\Middleware;
 
+use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
@@ -19,6 +20,8 @@ use Throwable;
 
 final readonly class LegacySessionBridge
 {
+    use DecryptsLegacySessionData;
+
     public function __construct(
         private Auth $auth,
         private PayloadDecoder $decoder,
@@ -35,6 +38,8 @@ final readonly class LegacySessionBridge
             return $next($request);
         }
 
+        // At this point we know we have a legacy cookie for this user.
+
         try {
             $this->bridge($request);
         } catch (Throwable $throwable) {
@@ -45,13 +50,8 @@ final readonly class LegacySessionBridge
 
         $response = $next($request);
 
-        // @todo - if bridge fails, we still remove the legacy entry - is this expected?
         if ($this->shouldInvalidateAfterWrite()) {
-            $cookieValue = $request->cookie($this->cookieName());
-
-            if (is_string($cookieValue)) {
-                $this->invalidateLegacySession($cookieValue);
-            }
+            $this->invalidateLegacySession($request);
         }
 
         return $response;
@@ -66,33 +66,33 @@ final readonly class LegacySessionBridge
         return (bool) $request->cookie($this->cookieName());
     }
 
-    private function bridge(Request $request): void
+    /**
+     * Returns the resolved session ID if successfully bridged.
+     */
+    private function bridge(Request $request): ?string
     {
-        $sessionId = $request->cookie($this->cookieName());
+        $sessionId = $this->resolveSessionId($request);
 
-        if (! is_string($sessionId)) {
-            return;
+        if ($sessionId === null) {
+            return null;
         }
 
         $row = $this->fetchLegacySession($sessionId);
 
         if ($row === null) {
-            return;
+            return null;
         }
 
-        $payload = $this->decoder->decode(
-            $row->payload,
-            Config::format(),
-        );
+        $payload = $this->decoder->decode($row->payload, Config::format());
 
         if ($payload->isEmpty()) {
-            return;
+            return null;
         }
 
         $userId = $this->resolver->resolve($payload);
 
-        if (! $userId) {
-            return;
+        if ($userId === null) {
+            return null;
         }
 
         /** @var StatefulGuard $guard */
@@ -103,7 +103,7 @@ final readonly class LegacySessionBridge
         $this->hydrateContext($userId, $payload);
 
         if (Config::invalidation() === 'immediate') {
-            $this->invalidateLegacySession($sessionId);
+            $this->invalidateLegacySession($request);
         }
 
         $this->log('info', 'session bridged', [
@@ -111,6 +111,8 @@ final readonly class LegacySessionBridge
             'session_id' => mb_substr($sessionId, 0, 8).'…',
             'format'     => $payload->format(),
         ]);
+
+        return $sessionId;
     }
 
     /**
@@ -140,6 +142,21 @@ final readonly class LegacySessionBridge
             ->where('id', $sessionId)
             ->where('last_activity', '>', now()->subMinutes(Config::lifetime())->timestamp)
             ->first();
+    }
+
+    private function resolveSessionId(Request $request): ?string
+    {
+        $raw = $request->cookie($this->cookieName());
+
+        if (! is_string($raw)) {
+            return null;
+        }
+
+        if (Config::cookieEncryption() === 'laravel') {
+            return $this->decrypt(payload: $raw, unserialize: false, isCookie: true);
+        }
+
+        return $raw;
     }
 
     private function hydrateContext(int $userId, LegacyPayload $payload): void
@@ -181,8 +198,10 @@ final readonly class LegacySessionBridge
         }
     }
 
-    private function invalidateLegacySession(string $sessionId): void
+    private function invalidateLegacySession(Request $request): void
     {
+        $resolvedSessionId = $this->resolveSessionId($request);
+
         if (Config::invalidation() === 'never') {
             return;
         }
@@ -190,9 +209,11 @@ final readonly class LegacySessionBridge
         try {
             DB::connection(Config::connection())
                 ->table(Config::table())
-                ->where('id', $sessionId)
+                ->where('id', $resolvedSessionId)
                 ->delete();
-            Cookie::queue(Cookie::forget($sessionId));
+
+            Cookie::queue(Cookie::forget($this->cookieName()));
+
         } catch (Throwable $throwable) {
             $this->log('warning', 'could not invalidate legacy session', [
                 'error' => $throwable->getMessage(),

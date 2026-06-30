@@ -1,0 +1,13 @@
+<?php
+
+namespace Chr15k\LegacyBridge\Exceptions;
+
+use RuntimeException;
+
+final class MissingLegacyAppKeyException extends RuntimeException
+{
+    public function __construct($message = 'legacy_app_key is not set in config/legacy-bridge.php')
+    {
+        parent::__construct($message);
+    }
+}

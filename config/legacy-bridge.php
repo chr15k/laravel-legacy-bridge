@@ -62,23 +62,56 @@ return [
     | Use "auto" to let the package detect the format from a sample payload.
     | Use "encrypted" when the legacy app encrypted sessions with its own
     | APP_KEY — you must also set "legacy_app_key" below.
-    |command:workbench.trust.manage
+    |
+    | If your legacy app is itself a Laravel application, this is almost
+    | always "laravel" — NOT "encrypted". "encrypted" only applies if the
+    | legacy app explicitly set SESSION_ENCRYPT=true, which is uncommon.
+    |
+    | If unsure, set "laravel" first and run legacy-bridge:verify --session-id=
+    | to confirm the payload decodes correctly.
+    |
     */
 
     'format' => env('LEGACY_SESSION_FORMAT', 'auto'),
 
     /*
     |--------------------------------------------------------------------------
-    | Legacy App Key (encrypted sessions only)
+    | Legacy App Key
     |--------------------------------------------------------------------------
     |
-    | Required when format is "encrypted". This is the APP_KEY value from
-    | your legacy Laravel application, used to decrypt session payloads
-    | before parsing.
+    | The APP_KEY from your legacy Laravel application. Used to decrypt the
+    | session cookie (when cookie_encryption is "laravel") and/or the session
+    | payload (when format is "encrypted"). Most legacy Laravel apps will
+    | need both set together.
     |
     */
 
     'legacy_app_key' => env('LEGACY_APP_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Legacy Cookie Encryption
+    |--------------------------------------------------------------------------
+    |
+    | Whether the legacy session cookie value itself needs decrypting before
+    | it can be used as a lookup key against the sessions table.
+    |
+    | "none"    — the cookie value is the raw session ID (plain PHP apps,
+    |             or a Laravel app that excluded this cookie from
+    |             EncryptCookies). This is the default for most legacy apps.
+    |
+    | "laravel" — the legacy app is itself a Laravel app and the cookie was
+    |             encrypted by its EncryptCookies middleware. The cookie
+    |             must be decrypted with legacy_app_key below to recover
+    |             the raw session ID before it can be looked up.
+    |
+    | Note: this is independent of "format" above. "format" describes the
+    | session *payload* stored in the database; this describes the *cookie*
+    | sent by the browser. A legacy Laravel app will typically need both
+    | "cookie_encryption" and "format" set, sharing the same legacy_app_key.
+    |
+    */
+    'cookie_encryption' => env('LEGACY_COOKIE_ENCRYPTION', 'none'), // 'none' | 'laravel'
 
     /*
     |--------------------------------------------------------------------------
