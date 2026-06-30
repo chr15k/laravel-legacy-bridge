@@ -310,7 +310,6 @@ it('handles multiple concurrent sessions for different users independently', fun
     expect(Auth::id())->toBe($userB->id);
 });
 
-
 // ---------------------------------------------------------------------------
 // Laravel encryped cookie
 // ---------------------------------------------------------------------------
