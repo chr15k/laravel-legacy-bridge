@@ -1,6 +1,41 @@
 <?php
 
+use Chr15k\LegacyBridge\Integrations\Laravel;
+
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Legacy Integration
+    |--------------------------------------------------------------------------
+    |
+    | Defines how the bridge interacts with your legacy application.
+    |
+    | An integration encapsulates all framework-specific logic required to:
+    | - Locate and read legacy session records
+    | - Decode and interpret session payloads
+    | - Resolve the authenticated user from session data
+    | - Handle any framework-specific quirks (schema, serialization, timestamps)
+    |
+    | Built-in integrations are provided for common legacy frameworks such as
+    | Laravel and CodeIgniter, but you may also implement your own by
+    | creating a class that implements:
+    |
+    |   \Chr15k\LegacyBridge\Contracts\Integration
+    |
+    | Example:
+    |
+    |   'integration' => \Chr15k\LegacyBridge\Integrations\Laravel::class,
+    |
+    | or a custom implementation:
+    |
+    |   'integration' => App\Bridge\MyLegacyIntegration::class,
+    |
+    | This approach allows the package to remain framework-agnostic while
+    | supporting a wide range of legacy application architectures.
+    |
+    */
+    'integration' => env('LEGACY_INTEGRATION', Laravel::class),
 
     /*
     |--------------------------------------------------------------------------

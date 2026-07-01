@@ -4,7 +4,7 @@ use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 
 beforeEach(function (): void {
-    $this->decoder = new PayloadDecoder;
+    $this->decoder = app(PayloadDecoder::class);
 });
 
 describe('format detection', function (): void {

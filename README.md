@@ -24,7 +24,7 @@ When you migrate a legacy PHP application to Laravel incrementally, your users a
 
 The Strangler Fig pattern lets you migrate feature by feature while both apps run simultaneously. The hard part is the boundary: a user who logged in on the legacy app is not authenticated in Laravel. Without a bridge, they hit a login wall on their first request to any Laravel-handled route.
 
-**laravel-legacy-bridge** solves this by:
+**Laravel Legacy Bridge** solves this by:
 
 - Reading the legacy session cookie on every unauthenticated request
 - Fetching and decoding the legacy session payload from the legacy database

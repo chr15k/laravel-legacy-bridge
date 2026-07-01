@@ -15,7 +15,7 @@ trait DecryptsLegacySessionData
 {
     public function decrypt(string $payload, bool $unserialize = true, bool $isCookie = false): ?string
     {
-        $key = Config::legacyAppKey();
+        $key = app(Config::class)->legacyAppKey();
 
         if (in_array($key, [null, '', '0'], true)) {
             throw new MissingLegacyAppKeyException;

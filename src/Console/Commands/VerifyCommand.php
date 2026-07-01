@@ -33,6 +33,7 @@ final class VerifyCommand extends Command
     public function __construct(
         private readonly PayloadDecoder $decoder,
         private readonly ResolverManager $resolverManager,
+        private readonly Config $config
     ) {
         parent::__construct();
     }
@@ -78,9 +79,7 @@ final class VerifyCommand extends Command
 
     private function checkConfig(): bool
     {
-        $config = config('legacy-bridge');
-
-        if (! $config) {
+        if (! $this->config) {
             error('Config not found. Run: php artisan legacy-bridge:install');
 
             return false;
@@ -91,11 +90,11 @@ final class VerifyCommand extends Command
             content: [
                 Element::keyValueList([
                     'file'         => 'config/legacy-bridge.php',
-                    'cookie'       => Config::cookie(),
-                    'connection'   => Config::connection(),
-                    'table'        => Config::table(),
-                    'format'       => Config::format(),
-                    'invalidation' => Config::invalidation(),
+                    'cookie'       => $this->config->cookie(),
+                    'connection'   => $this->config->connection(),
+                    'table'        => $this->config->table(),
+                    'format'       => $this->config->format(),
+                    'invalidation' => $this->config->invalidation(),
                 ]),
             ],
         );
@@ -105,7 +104,7 @@ final class VerifyCommand extends Command
 
     private function checkConnection(): bool
     {
-        $connection = $this->option('connection') ?? Config::connection();
+        $connection = $this->option('connection') ?? $this->config->connection();
 
         if (! is_string($connection)) {
             error('Connection is not configured - check config("legacy-bridge.connection")');
@@ -113,7 +112,7 @@ final class VerifyCommand extends Command
             return false;
         }
 
-        $table = Config::table();
+        $table = $this->config->table();
 
         try {
             $count = DB::connection($connection)->table($table)->count();
@@ -131,7 +130,7 @@ final class VerifyCommand extends Command
     {
         try {
             $this->resolverManager->make();
-            info(sprintf('Resolver ready: %s', Config::resolverDriver()));
+            info(sprintf('Resolver ready: %s', $this->config->resolverDriver()));
 
             return true;
         } catch (Throwable $throwable) {
@@ -143,7 +142,7 @@ final class VerifyCommand extends Command
 
     private function checkCookieAlignment(): bool
     {
-        $legacyCookie = Config::cookie();
+        $legacyCookie = $this->config->cookie();
         $laravelCookie = config('session.cookie');
         if (! is_string($laravelCookie)) {
             error('Laravel session cookie not configured - check config("session.cookie")');
@@ -169,9 +168,9 @@ final class VerifyCommand extends Command
     {
         note(sprintf('Testing session ID: %s…', mb_substr($sessionId, 0, 12)));
 
-        $connection = $this->option('connection') ?? Config::connection();
-        $table = Config::table();
-        $lifetime = Config::lifetime();
+        $connection = $this->option('connection') ?? $this->config->connection();
+        $table = $this->config->table();
+        $lifetime = $this->config->lifetime();
 
         if (! is_string($connection)) {
             error('Connection not configured - check config("legacy-bridge.connection")');
@@ -198,7 +197,7 @@ final class VerifyCommand extends Command
             warning(sprintf('Session is %dm old (lifetime: %dm) — it would be rejected', $age, $lifetime));
         }
 
-        $payload = $this->decoder->decode($row->payload, Config::format());
+        $payload = $this->decoder->decode($row->payload, $this->config->format());
 
         if ($payload->isEmpty()) {
             error('Decoded payload is empty — check format config');

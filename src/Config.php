@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge;
 
+use Chr15k\LegacyBridge\Contracts\LegacyIntegration;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Integrations\Laravel;
+use Illuminate\Support\Collection;
 
-final class Config
+final readonly class Config
 {
     /**
-     * @return array{
+     * @param Collection<int, array{
+     *     integration: class-string<LegacyIntegration>,
      *     cookie: string,
      *     connection: string,
      *     table: string,
@@ -31,61 +35,65 @@ final class Config
      *         enabled: bool,
      *         channel: string|null,
      *     },
-     * }
+     * }> $config
      */
-    public static function all(): array
+    public function __construct(private Collection $config)
     {
-        /** @var array{cookie: string, connection: string, table: string, lifetime: int, format: string, legacy_app_key: string|null, resolver: array{driver: string, key: string, class: class-string<LegacyUserResolver>|null}, context: array{carry_keys: list<string>, flash: bool}, invalidation: string, logging: array{enabled: bool, channel: string|null}} */
-        return config('legacy-bridge');
+        //
     }
 
-    public static function cookie(): string
+    public function integration(): string
     {
-        return self::string('legacy-bridge.cookie', 'PHPSESSID');
+        return $this->string('legacy-bridge.integration', Laravel::class);
     }
 
-    public static function connection(): string
+    public function cookie(): string
     {
-        return self::string('legacy-bridge.connection', 'legacy');
+        return $this->string('legacy-bridge.cookie', 'PHPSESSID');
     }
 
-    public static function table(): string
+    public function connection(): string
     {
-        return self::string('legacy-bridge.table', 'sessions');
+        return $this->string('legacy-bridge.connection', 'legacy');
     }
 
-    public static function lifetime(): int
+    public function table(): string
     {
-        $value = config('legacy-bridge.lifetime', 120);
+        return $this->string('legacy-bridge.table', 'sessions');
+    }
+
+    public function lifetime(): int
+    {
+        $value = $this->config->get('lifetime', 120);
 
         return is_int($value) ? $value : (int) (is_string($value) ? $value : 120);
     }
 
-    public static function shouldDecryptLegacySession(): bool
+    public function shouldDecryptLegacySession(): bool
     {
-        return self::format() === 'encrypted' && self::legacyAppKey() !== null;
+        return $this->format() === 'encrypted' && $this->legacyAppKey() !== null;
     }
 
-    public static function cookieEncryption(): string
+    public function cookieEncryption(): string
     {
-        return self::string('legacy-bridge.cookie_encryption', 'none');
+        return $this->string('legacy-bridge.cookie_encryption', 'none');
     }
 
-    public static function format(): string
+    public function format(): string
     {
-        return self::string('legacy-bridge.format', 'auto');
+        return $this->string('legacy-bridge.format', 'auto');
     }
 
-    public static function legacyAppKey(): ?string
+    public function legacyAppKey(): ?string
     {
-        $value = config('legacy-bridge.legacy_app_key');
+        $value = $this->config->get('legacy_app_key');
 
         return is_string($value) ? $value : null;
     }
 
-    public static function invalidation(): string
+    public function invalidation(): string
     {
-        return self::string('legacy-bridge.invalidation', 'after_write');
+        return $this->string('legacy-bridge.invalidation', 'after_write');
     }
 
     /**
@@ -95,28 +103,28 @@ final class Config
      *     class: class-string<LegacyUserResolver>|null,
      * }
      */
-    public static function resolver(): array
+    public function resolver(): array
     {
         /** @var array{driver: string, key: string, class: class-string<LegacyUserResolver>|null} */
-        return config('legacy-bridge.resolver');
+        return $this->config->get('resolver');
     }
 
-    public static function resolverDriver(): string
+    public function resolverDriver(): string
     {
-        return self::string('legacy-bridge.resolver.driver', 'auto');
+        return $this->string('legacy-bridge.resolver.driver', 'auto');
     }
 
-    public static function resolverKey(): string
+    public function resolverKey(): string
     {
-        return self::string('legacy-bridge.resolver.key', 'user_id');
+        return $this->string('legacy-bridge.resolver.key', 'user_id');
     }
 
     /**
      * @return class-string<LegacyUserResolver>|null
      */
-    public static function resolverClass(): ?string
+    public function resolverClass(): ?string
     {
-        $value = config('legacy-bridge.resolver.class');
+        $value = $this->config->get('resolver.class');
 
         return is_string($value) ? $value : null; // @phpstan-ignore-line
     }
@@ -124,36 +132,41 @@ final class Config
     /**
      * @return list<string>
      */
-    public static function contextCarryKeys(): array
+    public function contextCarryKeys(): array
     {
         /** @var list<string> */
-        return config('legacy-bridge.context.carry_keys', []);
+        return $this->config->get('context.carry_keys', []);
     }
 
-    public static function contextFlash(): bool
+    public function contextFlash(): bool
     {
-        $value = config('legacy-bridge.context.flash', false);
+        $value = $this->config->get('context.flash', false);
 
         return is_bool($value) ? $value : (bool) $value;
     }
 
-    public static function loggingEnabled(): bool
+    public function loggingEnabled(): bool
     {
-        $value = config('legacy-bridge.logging.enabled', true);
+        $value = $this->config->get('logging.enabled', true);
 
         return is_bool($value) ? $value : (bool) $value;
     }
 
-    public static function loggingChannel(): ?string
+    public function loggingChannel(): ?string
     {
-        $value = config('legacy-bridge.logging.channel');
+        $value = $this->config->get('logging.channel');
 
         return is_string($value) ? $value : null;
     }
 
-    private static function string(string $key, string $default): string
+    public function shouldInvalidateAfterWrite(): bool
     {
-        $value = config($key, $default);
+        return $this->invalidation() === 'after_write';
+    }
+
+    private function string(string $key, string $default): string
+    {
+        $value = $this->config->get($key, $default);
 
         return is_string($value) ? $value : $default;
     }

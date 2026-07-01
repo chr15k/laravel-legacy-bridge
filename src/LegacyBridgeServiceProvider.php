@@ -7,9 +7,12 @@ namespace Chr15k\LegacyBridge;
 use Chr15k\LegacyBridge\Console\Commands\InstallCommand;
 use Chr15k\LegacyBridge\Console\Commands\VerifyCommand;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
+use Chr15k\LegacyBridge\Contracts\LegacyIntegration;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
+use Dotenv\Loader\Resolver;
+use Illuminate\Config\Repository;
 use Illuminate\Contracts\Auth\Factory;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -18,34 +21,39 @@ use Override;
 
 final class LegacyBridgeServiceProvider extends ServiceProvider
 {
+    private const string CONFIG = 'legacy-bridge';
+
     #[Override]
     public function register(): void
     {
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/legacy-bridge.php',
-            'legacy-bridge',
-        );
+        $this->mergeConfigFrom(sprintf('%s/../config/%s.php', __DIR__, self::CONFIG), self::CONFIG);
+
+        $this->app->singleton(Config::class, function (Container $app) {
+            return new Config(
+                $app->make(Repository::class)->collection(self::CONFIG)
+            );
+        });
 
         $this->app->singleton(PayloadDecoder::class);
-
         $this->app->singleton(ResolverManager::class);
 
-        $this->app->singleton(LegacyUserResolver::class, fn (Container $app) => $app->make(ResolverManager::class)->make());
+        $this->app->singleton(LegacyUserResolver::class, function (Container $app) {
+            return $app->make(ResolverManager::class)->make();
+        });
 
-        $this->app->singleton(LegacySessionBridge::class, fn (Container $app): LegacySessionBridge => new LegacySessionBridge(
-            auth: $app->make(Factory::class),
-            decoder: $app->make(PayloadDecoder::class),
-            resolver: $app->make(LegacyUserResolver::class),
-            contextResolver: $app->bound(LegacyContextResolver::class)
-                ? $app->make(LegacyContextResolver::class)
-                : null,
-        ));
+        $this->app->singleton(LegacyIntegration::class, function (Container $app) {
+            $config = $app->make(Config::class);
+
+            return $app->make($config->integration());
+        });
+
+        $this->app->singleton(LegacySessionBridge::class);
     }
 
     public function boot(): void
     {
-        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware): void {
-            $middleware->disableFor(Config::cookie());
+        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware, Config $config): void {
+            $middleware->disableFor($config->cookie());
         });
 
         if ($this->app->runningInConsole()) {

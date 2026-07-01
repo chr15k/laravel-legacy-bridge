@@ -12,18 +12,14 @@ use InvalidArgumentException;
 
 final readonly class ResolverManager
 {
-    public function __construct(
-        private Container $app,
-    ) {}
+    public function __construct(private Container $app, private Config $config)
+    {
+        //
+    }
 
     public function make(): LegacyUserResolver
     {
-        /** @var array{
-         *    driver: string,
-         *    class?: class-string<LegacyUserResolver>,
-         *    key?: string
-         * } $config */
-        $config = config('legacy-bridge.resolver');
+        $config = $this->config->resolver();
         $driver = $config['driver'];
 
         return match ($driver) {
