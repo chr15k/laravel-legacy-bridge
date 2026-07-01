@@ -130,7 +130,7 @@ final class VerifyCommand extends Command
     {
         try {
             $this->resolverManager->make();
-            info(sprintf('Resolver ready: %s', $this->config->resolverDriver()));
+            info(sprintf('Resolver ready: %s', $this->config->resolver()['driver']));
 
             return true;
         } catch (Throwable $throwable) {
