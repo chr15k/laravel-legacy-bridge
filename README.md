@@ -35,6 +35,9 @@ The Strangler Fig pattern lets you migrate feature by feature while both apps ru
 
 The bridge runs once per user. After their first request, they hold a standard Laravel session and the legacy database is never touched again for that user.
 
+> [!NOTE]
+> Laravel Legacy Bridge currently supports database-backed sessions. This provides a simple, predictable, and well-understood integration for incremental migrations. Additional session backends, such as Redis, may be added in future releases if there is sufficient demand.
+
 ---
 
 ## Requirements
