@@ -14,11 +14,11 @@ seeders:
 
 env:
   SESSION_DRIVER: database
-  LEGACY_APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
+  LEGACY_BRIDGE_APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
   APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
-  LEGACY_DB_CONNECTION: sqlite
-  LEGACY_SESSION_TABLE: legacy_sessions
-  LEGACY_SESSION_COOKIE: legacy-test-session
+  LEGACY_BRIDGE_DB_CONNECTION: sqlite
+  LEGACY_BRIDGE_TABLE: legacy_sessions
+  LEGACY_BRIDGE_COOKIE: legacy-test-session
 
 workbench:
   start: '/'

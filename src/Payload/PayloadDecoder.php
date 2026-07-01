@@ -9,12 +9,12 @@ use Chr15k\LegacyBridge\Config;
 
 final class PayloadDecoder
 {
+    use DecryptsLegacySessionData;
+
     public function __construct(private Config $config)
     {
         //
     }
-
-    use DecryptsLegacySessionData;
 
     public function decode(string $raw, string $format = 'auto'): LegacyPayload
     {
@@ -57,7 +57,7 @@ final class PayloadDecoder
         }
 
         // Doesn't match any known plain format — likely encrypted, but
-        // auto-detection can't confirm this without the legacy_app_key.
+        // auto-detection can't confirm this without the app_key.
         // Surface this clearly rather than silently returning 'unknown'.
         return $this->config->legacyAppKey() ? 'encrypted' : 'unknown';
     }

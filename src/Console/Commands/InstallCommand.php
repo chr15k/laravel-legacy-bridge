@@ -94,12 +94,12 @@ final class InstallCommand extends Command
         info('Enter your legacy database credentials:');
 
         return [
-            'LEGACY_DB_CONNECTION' => 'legacy',
-            'LEGACY_DB_HOST'       => text(label: 'DB host', default: '127.0.0.1'),
-            'LEGACY_DB_PORT'       => text(label: 'DB port', default: '3306'),
-            'LEGACY_DB_DATABASE'   => text(label: 'DB database', required: true),
-            'LEGACY_DB_USERNAME'   => text(label: 'DB username', required: true),
-            'LEGACY_DB_PASSWORD'   => text(label: 'DB password'),
+            'LEGACY_BRIDGE_DB_CONNECTION' => 'legacy',
+            'LEGACY_DB_HOST'              => text(label: 'DB host', default: '127.0.0.1'),
+            'LEGACY_DB_PORT'              => text(label: 'DB port', default: '3306'),
+            'LEGACY_DB_DATABASE'          => text(label: 'DB database', required: true),
+            'LEGACY_DB_USERNAME'          => text(label: 'DB username', required: true),
+            'LEGACY_DB_PASSWORD'          => text(label: 'DB password'),
         ];
     }
 
@@ -109,12 +109,12 @@ final class InstallCommand extends Command
     private function collectSharedDbEnv(): array
     {
         return [
-            'LEGACY_DB_CONNECTION' => text(
+            'LEGACY_BRIDGE_DB_CONNECTION' => text(
                 label: 'DB connection name',
                 default: config('database.default', 'mysql'),
                 hint: 'Must match an existing connection in config/database.php',
             ),
-            'LEGACY_SESSION_TABLE' => text(
+            'LEGACY_BRIDGE_TABLE' => text(
                 label: 'Legacy sessions table name',
                 default: 'sessions',
                 hint: 'Only change this if the legacy table name differs from "sessions"',
@@ -129,46 +129,46 @@ final class InstallCommand extends Command
     {
         return match ($preset) {
             'laravel' => [
-                'LEGACY_SESSION_COOKIE'    => 'laravel_session',
-                'LEGACY_SESSION_FORMAT'    => 'laravel',
-                'LEGACY_COOKIE_ENCRYPTION' => 'laravel',
-                'LEGACY_APP_KEY'           => text(
+                'LEGACY_BRIDGE_COOKIE'           => 'laravel_session',
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'   => 'laravel',
+                'LEGACY_BRIDGE_COOKIE_ENCRYPTED' => 'laravel',
+                'LEGACY_BRIDGE_APP_KEY'          => text(
                     label: 'Legacy app APP_KEY',
                     required: true,
                     hint: "Found in the legacy application's .env file",
                 ),
             ],
             'codeigniter3' => [
-                'LEGACY_SESSION_COOKIE'  => 'ci_session',
-                'LEGACY_SESSION_TABLE'   => 'ci_sessions',
-                'LEGACY_SESSION_FORMAT'  => 'encrypted',
-                'LEGACY_RESOLVER_DRIVER' => 'key',
-                'LEGACY_RESOLVER_KEY'    => 'user_id',
-                'LEGACY_APP_KEY'         => text(
+                'LEGACY_BRIDGE_COOKIE'          => 'ci_session',
+                'LEGACY_BRIDGE_TABLE'           => 'ci_sessions',
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'encrypted',
+                'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'key',
+                'LEGACY_BRIDGE_RESOLVER_KEY'    => 'user_id',
+                'LEGACY_BRIDGE_APP_KEY'         => text(
                     label: 'CodeIgniter encryption_key',
                     required: true,
                     hint: 'Found in application/config/config.php',
                 ),
             ],
             'codeigniter4' => [
-                'LEGACY_SESSION_COOKIE'  => 'ci_session',
-                'LEGACY_SESSION_TABLE'   => 'ci_sessions',
-                'LEGACY_SESSION_FORMAT'  => 'php_session',
-                'LEGACY_RESOLVER_DRIVER' => 'key',
-                'LEGACY_RESOLVER_KEY'    => 'user_id',
+                'LEGACY_BRIDGE_COOKIE'          => 'ci_session',
+                'LEGACY_BRIDGE_TABLE'           => 'ci_sessions',
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'php_session',
+                'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'key',
+                'LEGACY_BRIDGE_RESOLVER_KEY'    => 'user_id',
             ],
             'symfony' => [
-                'LEGACY_SESSION_COOKIE'  => 'PHPSESSID',
-                'LEGACY_SESSION_FORMAT'  => 'php_session',
-                'LEGACY_RESOLVER_DRIVER' => 'custom',
+                'LEGACY_BRIDGE_COOKIE'          => 'PHPSESSID',
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'php_session',
+                'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'custom',
             ],
             default => [
-                'LEGACY_SESSION_COOKIE' => text(
+                'LEGACY_BRIDGE_COOKIE' => text(
                     label: 'Legacy session cookie name',
                     default: 'PHPSESSID',
                 ),
-                'LEGACY_SESSION_FORMAT'  => 'auto',
-                'LEGACY_RESOLVER_DRIVER' => 'auto',
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'auto',
+                'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'auto',
             ],
         };
     }

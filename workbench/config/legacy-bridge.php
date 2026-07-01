@@ -12,7 +12,7 @@ return [
     |
     */
 
-    'cookie' => env('LEGACY_SESSION_COOKIE', 'PHPSESSID'),
+    'cookie' => env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'),
 
     /*
     |--------------------------------------------------------------------------
@@ -25,7 +25,7 @@ return [
     |
     */
 
-    'connection' => env('LEGACY_DB_CONNECTION', 'legacy'),
+    'connection' => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
 
     /*
     |--------------------------------------------------------------------------
@@ -36,7 +36,7 @@ return [
     |
     */
 
-    'table' => env('LEGACY_SESSION_TABLE', 'sessions'),
+    'table' => env('LEGACY_BRIDGE_TABLE', 'sessions'),
 
     /*
     |--------------------------------------------------------------------------
@@ -48,7 +48,7 @@ return [
     |
     */
 
-    'lifetime' => env('LEGACY_SESSION_LIFETIME', config('session.lifetime', 120)),
+    'lifetime' => env('LEGACY_BRIDGE_LIFETIME', config('session.lifetime', 120)),
 
     /*
     |--------------------------------------------------------------------------
@@ -61,11 +61,11 @@ return [
     |
     | Use "auto" to let the package detect the format from a sample payload.
     | Use "encrypted" when the legacy app encrypted sessions with its own
-    | APP_KEY — you must also set "legacy_app_key" below.
+    | APP_KEY — you must also set "app_key" below.
     |command:workbench.trust.manage
     */
 
-    'format' => env('LEGACY_SESSION_FORMAT', 'auto'),
+    'format' => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
 
     /*
     |--------------------------------------------------------------------------
@@ -78,7 +78,7 @@ return [
     |
     */
 
-    'legacy_app_key' => env('LEGACY_APP_KEY'),
+    'app_key' => env('LEGACY_BRIDGE_APP_KEY'),
 
     /*
     |--------------------------------------------------------------------------
@@ -94,13 +94,13 @@ return [
     */
 
     'resolver' => [
-        'driver' => env('LEGACY_RESOLVER_DRIVER', 'auto'),
+        'driver' => env('LEGACY_BRIDGE_RESOLVER_DRIVER', 'auto'),
 
         // For driver "key": the dot-notation path to the user ID in the payload.
-        'key' => env('LEGACY_RESOLVER_KEY', 'user_id'),
+        'key' => env('LEGACY_BRIDGE_RESOLVER_KEY', 'user_id'),
 
         // For driver "custom": the FQCN of your LegacyUserResolver implementation.
-        'class' => env('LEGACY_RESOLVER_CLASS', 'App\Bridge\LegacyUserResolver'),
+        'class' => env('LEGACY_BRIDGE_RESOLVER_CLASS', 'App\Bridge\LegacyUserResolver'),
     ],
 
     /*
@@ -140,7 +140,7 @@ return [
     |
     */
 
-    'invalidation' => env('LEGACY_SESSION_INVALIDATION', 'after_write'),
+    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'),
 
     /*
     |--------------------------------------------------------------------------

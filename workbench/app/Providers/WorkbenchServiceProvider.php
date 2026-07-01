@@ -23,7 +23,7 @@ final class WorkbenchServiceProvider extends ServiceProvider
     public function boot(Router $router): void
     {
         $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware) {
-            $middleware->disableFor(env('LEGACY_SESSION_COOKIE', 'PHPSESSID'));
+            $middleware->disableFor(env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'));
         });
         $router->prependMiddlewareToGroup('web', LegacySessionBridge::class);
     }

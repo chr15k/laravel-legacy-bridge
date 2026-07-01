@@ -114,7 +114,7 @@ it('bridges a native php session format payload', function (): void {
         'last_activity' => now()->timestamp,
     ]);
 
-    config()->set('legacy-bridge.format', 'php_session');
+    config()->set('legacy-bridge.payload.format', 'php_session');
 
     $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
         ->get('/protected')
@@ -132,7 +132,7 @@ it('bridges a json format payload', function (): void {
         'last_activity' => now()->timestamp,
     ]);
 
-    config()->set('legacy-bridge.format', 'json');
+    config()->set('legacy-bridge.payload.format', 'json');
 
     $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
         ->get('/protected')
@@ -314,9 +314,9 @@ it('handles multiple concurrent sessions for different users independently', fun
 // Laravel encryped cookie
 // ---------------------------------------------------------------------------
 it('bridges a laravel encrypted cookie', function (): void {
-    config()->set('legacy-bridge.format', 'laravel');
-    config()->set('legacy-bridge.cookie_encryption', 'laravel');
-    config()->set('legacy-bridge.legacy_app_key', config('app.key'));
+    config()->set('legacy-bridge.payload.format', 'laravel');
+    config()->set('legacy-bridge.cookie.encrypted', true);
+    config()->set('legacy-bridge.app_key', config('app.key'));
 
     User::factory()->create();
 

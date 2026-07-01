@@ -59,15 +59,15 @@ The install command publishes `config/legacy-bridge.php` and prints the remainin
 Add your legacy database credentials to `.env`:
 
 ```dotenv
-LEGACY_DB_CONNECTION=legacy
+LEGACY_BRIDGE_DB_CONNECTION=legacy
 LEGACY_DB_HOST=127.0.0.1
 LEGACY_DB_DATABASE=your_legacy_db
 LEGACY_DB_USERNAME=your_user
 LEGACY_DB_PASSWORD=your_password
 
-LEGACY_SESSION_COOKIE=PHPSESSID
-LEGACY_SESSION_TABLE=sessions
-LEGACY_SESSION_FORMAT=auto
+LEGACY_BRIDGE_COOKIE=PHPSESSID
+LEGACY_BRIDGE_TABLE=sessions
+LEGACY_BRIDGE_PAYLOAD_FORMAT=auto
 ```
 
 Add the legacy connection to `config/database.php`:
@@ -88,7 +88,7 @@ Add the legacy connection to `config/database.php`:
 ```
 
 > [!NOTE]
-> If both applications share the same database, set `LEGACY_DB_CONNECTION` to your default connection name and skip adding a new connection entry. See the [User Guide](GUIDE.md#shared-database) for details.
+> If both applications share the same database, set `LEGACY_BRIDGE_DB_CONNECTION` to your default connection name and skip adding a new connection entry. See the [User Guide](GUIDE.md#shared-database) for details.
 
 Register the middleware in `bootstrap/app.php`:
 
@@ -140,18 +140,18 @@ Full setup, configuration reference, and troubleshooting live in the **[User Gui
 // config/legacy-bridge.php
 
 return [
-    'cookie'             => env('LEGACY_SESSION_COOKIE', 'PHPSESSID'),
-    'connection'         => env('LEGACY_DB_CONNECTION', 'legacy'),
-    'table'              => env('LEGACY_SESSION_TABLE', 'sessions'),
-    'lifetime'           => env('LEGACY_SESSION_LIFETIME', 120),
-    'format'             => env('LEGACY_SESSION_FORMAT', 'auto'),
-    'cookie_encryption'  => env('LEGACY_COOKIE_ENCRYPTION', 'none'), // 'none' | 'laravel'
-    'legacy_app_key'     => env('LEGACY_APP_KEY'),
+    'cookie'             => env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'),
+    'connection'         => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
+    'table'              => env('LEGACY_BRIDGE_TABLE', 'sessions'),
+    'lifetime'           => env('LEGACY_BRIDGE_LIFETIME', 120),
+    'format'             => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
+    'cookie_encryption'  => env('LEGACY_BRIDGE_COOKIE_ENCRYPTED', 'none'), // 'none' | 'laravel'
+    'app_key'     => env('LEGACY_BRIDGE_APP_KEY'),
 
     'resolver' => [
-        'driver' => env('LEGACY_RESOLVER_DRIVER', 'auto'), // 'auto' | 'key' | 'custom'
-        'key'    => env('LEGACY_RESOLVER_KEY', 'user_id'),
-        'class'  => env('LEGACY_RESOLVER_CLASS'),
+        'driver' => env('LEGACY_BRIDGE_RESOLVER_DRIVER', 'auto'), // 'auto' | 'key' | 'custom'
+        'key'    => env('LEGACY_BRIDGE_RESOLVER_KEY', 'user_id'),
+        'class'  => env('LEGACY_BRIDGE_RESOLVER_CLASS'),
     ],
 
     'context' => [
@@ -159,7 +159,7 @@ return [
         'flash'      => false,
     ],
 
-    'invalidation' => env('LEGACY_SESSION_INVALIDATION', 'after_write'), // 'after_write' | 'immediate' | 'never'
+    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'), // 'after_write' | 'immediate' | 'never'
 
     'logging' => [
         'enabled' => env('LEGACY_BRIDGE_LOGGING', true),
@@ -207,8 +207,8 @@ Monitor the `legacy-bridge: session bridged` log entries. Once bridging activity
 The `auto` resolver tries several known payload paths, making it convenient during setup. In production, prefer `key` or `custom` so the user identity is resolved from a single, explicit location:
 
 ```dotenv
-LEGACY_RESOLVER_DRIVER=key
-LEGACY_RESOLVER_KEY=user_id
+LEGACY_BRIDGE_RESOLVER_DRIVER=key
+LEGACY_BRIDGE_RESOLVER_KEY=user_id
 ```
 
 ---

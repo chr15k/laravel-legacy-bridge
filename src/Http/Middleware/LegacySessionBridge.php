@@ -8,14 +8,13 @@ use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Contracts\LegacyIntegration;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Data\LegacySession;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -56,7 +55,7 @@ final readonly class LegacySessionBridge
         return $response;
     }
 
-    private function fetchLegacyCookie(Request $request)
+    private function fetchLegacyCookieValueFromRequest(Request $request)
     {
         return $request->cookie($this->config->cookie());
     }
@@ -67,26 +66,26 @@ final readonly class LegacySessionBridge
             return false;
         }
 
-        return (bool) $this->fetchLegacyCookie($request);
+        return (bool) $this->fetchLegacyCookieValueFromRequest($request);
     }
 
     private function bridge(Request $request): ?string
     {
-        $cookie = $this->fetchLegacyCookie($request);
+        $value = $this->fetchLegacyCookieValueFromRequest($request);
 
-        $sessionId = $this->integration->resolveSessionIdFromCookie($cookie);
+        $sessionId = $this->integration->resolveSessionId($value);
 
         if ($sessionId === null) {
             return null;
         }
 
-        $row = $this->fetchLegacySession($sessionId);
+        $data = $this->integration->fetchSessionFromStore($sessionId);
 
-        if ($row === null) {
+        if (! $data instanceof LegacySession) {
             return null;
         }
 
-        $payload = $this->decoder->decode($row->payload, $this->config->format());
+        $payload = $this->decoder->decode($data->payload, $this->config->format());
 
         if ($payload->isEmpty()) {
             return null;
@@ -116,35 +115,6 @@ final readonly class LegacySessionBridge
         ]);
 
         return $sessionId;
-    }
-
-    /**
-     * @return object{
-     *   id: string,
-     *   user_id: ?int,
-     *   ip_address: ?string,
-     *   user_agent: ?string,
-     *   payload: string,
-     *   last_activity: int
-     * }|null
-     */
-    private function fetchLegacySession(string $sessionId): ?object
-    {
-        /**
-         * @var object{
-         *   id: string,
-         *   user_id: ?int,
-         *   ip_address: ?string,
-         *   user_agent: ?string,
-         *   payload: string,
-         *   last_activity: int
-         * }|null
-         */
-        return DB::connection($this->config->connection())
-            ->table($this->config->table())
-            ->where('id', $sessionId)
-            ->where('last_activity', '>', now()->subMinutes($this->config->lifetime())->timestamp)
-            ->first();
     }
 
     private function hydrateContext(int $userId, LegacyPayload $payload): void
@@ -188,22 +158,16 @@ final readonly class LegacySessionBridge
 
     private function invalidateLegacySession(Request $request): void
     {
-        $cookie = $this->fetchLegacyCookie($request);
+        $value = $this->fetchLegacyCookieValueFromRequest($request);
 
-        $resolvedSessionId = $this->integration->resolveSessionIdFromCookie($cookie);
+        $resolvedSessionId = $this->integration->resolveSessionId($value);
 
         if ($this->config->invalidation() === 'never') {
             return;
         }
 
         try {
-            DB::connection($this->config->connection())
-                ->table($this->config->table())
-                ->where('id', $resolvedSessionId)
-                ->delete();
-
-            Cookie::queue(Cookie::forget($this->config->cookie()));
-
+            $this->integration->invalidateSession($resolvedSessionId);
         } catch (Throwable $throwable) {
             $this->log('warning', 'could not invalidate legacy session', [
                 'error' => $throwable->getMessage(),
