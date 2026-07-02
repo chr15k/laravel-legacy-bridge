@@ -266,7 +266,7 @@ it('does not carry keys not listed in carry_keys', function (): void {
 // ---------------------------------------------------------------------------
 
 it('does not throw when the legacy db connection fails', function (): void {
-    config()->set('legacy-bridge.connection', 'nonexistent');
+    config()->set('legacy-bridge.database.connection', 'nonexistent');
 
     $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
         ->get('/protected')

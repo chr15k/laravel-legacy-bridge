@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Console\Commands;
 
 use Chr15k\LegacyBridge\Config;
+use Chr15k\LegacyBridge\Data\LegacySession;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\ResolverManager;
+use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -33,7 +35,8 @@ final class VerifyCommand extends Command
     public function __construct(
         private readonly PayloadDecoder $decoder,
         private readonly ResolverManager $resolverManager,
-        private readonly Config $config
+        private readonly Config $config,
+        private readonly LegacyDatabaseSessionHandler $sessionHandler
     ) {
         parent::__construct();
     }
@@ -107,7 +110,7 @@ final class VerifyCommand extends Command
         $connection = $this->option('connection') ?? $this->config->connection();
 
         if (! is_string($connection)) {
-            error('Connection is not configured - check config("legacy-bridge.connection")');
+            error('Connection is not configured - check config("legacy-bridge.database.connection")');
 
             return false;
         }
@@ -173,31 +176,24 @@ final class VerifyCommand extends Command
         $lifetime = $this->config->lifetime();
 
         if (! is_string($connection)) {
-            error('Connection not configured - check config("legacy-bridge.connection")');
+            error('Connection not configured - check config("legacy-bridge.database.connection")');
 
             return false;
         }
 
-        /** @var object{id: string, payload: string, last_activity: int}|null */
-        $row = DB::connection($connection)
-            ->table($table)
-            ->where('id', $sessionId)
-            ->first();
+        $data = $this->sessionHandler->fetch(sessionId: $sessionId, includeExpired: true);
 
-        if (! $row) {
+        if (! $data instanceof LegacySession) {
             error(sprintf('Session "%s" not found in %s', $sessionId, $table));
 
             return false;
         }
 
-        $age = now()->diffInMinutes(now()->createFromTimestamp($row->last_activity));
-        $expired = $age > $lifetime;
-
-        if ($expired) {
-            warning(sprintf('Session is %dm old (lifetime: %dm) — it would be rejected', $age, $lifetime));
+        if ($data->expired) {
+            warning(sprintf('Session is %dm old (lifetime: %dm) — it would be rejected', $data->age, $lifetime));
         }
 
-        $payload = $this->decoder->decode($row->payload, $this->config->format());
+        $payload = $this->decoder->decode($data->payload, $this->config->format());
 
         if ($payload->isEmpty()) {
             error('Decoded payload is empty — check format config');
@@ -225,16 +221,16 @@ final class VerifyCommand extends Command
                 Element::keyValueList([
                     'session_id' => mb_substr($sessionId, 0, 12).'…',
                     'format'     => $payload->format(),
-                    'age'        => $age.'m (lifetime: '.$lifetime.'m)',
+                    'age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
                     'keys'       => implode(', ', array_keys($payload->all())),
                     'user_id'    => (string) $userId,
                     'user_found' => 'yes',
                 ]),
             ],
-            type: $expired ? 'warning' : 'info',
+            type: $data->expired ? 'warning' : 'info',
         );
 
-        return ! $expired;
+        return ! $data->expired;
     }
 
     private function userExists(int $userId): bool

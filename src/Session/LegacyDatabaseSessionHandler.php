@@ -2,6 +2,8 @@
 
 namespace Chr15k\LegacyBridge\Session;
 
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Data\LegacySession;
@@ -27,34 +29,47 @@ final readonly class LegacyDatabaseSessionHandler
         return $value;
     }
 
-    public function fetch(string $sessionId): ?LegacySession
+    public function fetch(string $sessionId, bool $includeExpired = false): ?LegacySession
     {
         $cols = $this->config->sessionColumns();
 
-        $row = DB::connection($this->config->connection())
+        $query = DB::connection($this->config->connection())
             ->table($this->config->table())
-            ->where($cols['id'], $sessionId)
-            ->where(
+            ->where($cols['id'], $sessionId);
+
+        $threshold = $this->threshold();
+
+        if ($includeExpired === false) {
+            $query->where(
                 $cols['last_activity'],
                 '>',
-                $this->resolveLastActivityThreshold($cols['last_activity_format']),
-            )
-            ->first();
+                $this->formatForQuery(
+                    $threshold,
+                    $cols['last_activity_format']
+                )
+            );
+        }
+
+        $row = $query->first();
 
         if ($row === null) {
             return null;
         }
 
-        $payload = $row->{$cols['payload']};
-        $activity = $this->resolveLastActivity($row->{$cols['last_activity']}, $cols['last_activity_format']);
+        $activity = $this->resolveLastActivity(
+            $row->{$cols['last_activity']},
+            $cols['last_activity_format']
+        );
 
         return new LegacySession(
             id: $row->{$cols['id']},
             userId: $row->user_id ?? null,
             ipAddress: $row->ip_address ?? null,
             userAgent: $row->user_agent ?? null,
-            payload: $payload,
-            lastActivity: $activity,
+            payload: $row->{$cols['payload']},
+            lastActivity: $activity->timestamp,
+            expired: $threshold->isAfter($activity),
+            age: now()->diffInMinutes($activity)
         );
     }
 
@@ -68,19 +83,22 @@ final readonly class LegacyDatabaseSessionHandler
         Cookie::queue(Cookie::forget($this->config->cookie()));
     }
 
-    private function resolveLastActivityThreshold(string $format): string|int
+    private function threshold(): CarbonInterface
     {
-        return $format === 'datetime'
-            ? now()->subMinutes($this->config->lifetime())->toDateTimeString()
-            : now()->subMinutes($this->config->lifetime())->timestamp;
+        return now()->subMinutes($this->config->lifetime());
     }
 
-    private function resolveLastActivity(mixed $value, string $format): int
+    private function formatForQuery(CarbonInterface $carbon, string $format): int|string
+    {
+        return $format === 'datetime' ? $carbon->toDateTimeString() : $carbon->timestamp;
+    }
+
+    private function resolveLastActivity(string|int $value, string $format): CarbonInterface
     {
         if ($format === 'datetime' && is_string($value)) {
-            return (int) strtotime($value);
+            return Carbon::parse($value);
         }
 
-        return (int) $value;
+        return Carbon::createFromTimestamp($value);
     }
 }

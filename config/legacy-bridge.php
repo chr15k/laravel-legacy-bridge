@@ -132,10 +132,27 @@ return [
     |--------------------------------------------------------------------------
     |
     | The driver used to extract a user ID from the decoded legacy session
-    | payload. Built-in drivers cover common legacy formats. Use "custom"
-    | and set "resolver_class" to provide your own implementation.
+    | payload.
     |
-    | Built-in drivers: "auto", "key", "laravel4", "sentinel", "sentry", "custom"
+    | IMPORTANT: The resolved user ID is used directly to look up a user in
+    | your new application's users table via Auth::loginUsingId(). This
+    | assumes the user IDs in your legacy session payload match the IDs in
+    | your new application's users table.
+    |
+    | If your migration involved re-seeding users with new IDs, or if legacy
+    | and new user IDs differ for any reason, you must handle the mapping in
+    | a custom resolver before returning the ID:
+    |
+    |   public function resolve(LegacyPayload $payload): ?int
+    |   {
+    |       $legacyId = $payload->resolveId('user_id');
+    |
+    |       return DB::table('user_id_map')
+    |           ->where('legacy_id', $legacyId)
+    |           ->value('new_id');
+    |   }
+    |
+    | Built-in drivers: "auto", "key", "custom"
     |
     */
 

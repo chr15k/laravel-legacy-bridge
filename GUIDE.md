@@ -271,6 +271,32 @@ return $payload->resolveId('auth_user');
 | Cartalyst Sentinel | `['cartalyst_sentinel' => ...]` | `$payload->resolveId('cartalyst_sentinel.id')` |
 | Multiple guards | `['admin_id' => null, 'user_id' => 42]` | Check `has()` for each |
 
+
+> [!WARNING]
+> **User ID mapping**
+> The resolved user ID is passed directly to `Auth::loginUsingId()` and looked up against
+> your new application's users table. The bridge assumes legacy user IDs and new user IDs
+> are the same value.
+>
+> If your migration re-seeded users, imported them with new auto-increment IDs, or used
+> UUIDs in the new app where the legacy app used integers, you **must** handle the mapping
+> in a custom resolver:
+>
+> ```php
+> public function resolve(LegacyPayload $payload): ?int
+> {
+>     $legacyId = $payload->resolveId('user_id');
+>
+>     return DB::table('user_id_map')
+>         ->where('legacy_id', $legacyId)
+>         ->value('new_id');
+> }
+> ```
+>
+> A missing mapping will cause `loginUsingId()` to return `false` silently — the user
+> lands on the guest flow with no error. If you see sessions being found but users not
+> being authenticated, an ID mismatch is the most likely cause.
+
 ---
 
 ## Step 6 — Verify the configuration

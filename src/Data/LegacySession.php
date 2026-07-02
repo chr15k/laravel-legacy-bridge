@@ -13,5 +13,7 @@ final readonly class LegacySession
         public ?string $userAgent,
         public string $payload,
         public int $lastActivity,
+        public bool $expired,
+        public float $age
     ) {}
 }
