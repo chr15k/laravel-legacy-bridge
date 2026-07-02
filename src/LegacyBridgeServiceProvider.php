@@ -57,8 +57,8 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware, Config $config): void {
-            $middleware->disableFor($config->cookie());
+        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware, Container $app): void {
+            $middleware->disableFor($app->make(Config::class)->cookie());
         });
 
         if ($this->app->runningInConsole()) {

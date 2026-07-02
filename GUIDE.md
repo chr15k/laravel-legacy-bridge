@@ -40,7 +40,7 @@ You will need:
 - A Laravel 12 or 13 application (the new app)
 - A legacy PHP application (any framework, or plain PHP — including a legacy Laravel app)
 - Access to the legacy application's session database table
-- The legacy session cookie name (commonly `PHPSESSID`, or `laravel_session` if the legacy app is also Laravel)
+- The legacy session cookie name (commonly `PHPSESSID`, or `laravel-session` if the legacy app is also Laravel)
 
 You do **not** need to know your legacy payload structure in advance — the bundled `auto`
 resolver covers most common cases, and the `legacy-bridge:verify` command will help you confirm
@@ -156,7 +156,7 @@ In `bootstrap/app.php`:
 ## Step 4 — Cookie naming
 
 If your legacy application is also a Laravel app and never customised its session cookie name,
-it is almost certainly using Laravel's default: `laravel_session`. Your new application's
+it is almost certainly using Laravel's default: `laravel-session`. Your new application's
 session cookie **must** use a different name to avoid a collision — the browser can only hold
 one cookie per name per domain, so if both apps used the same name, whichever response set it
 last would silently overwrite the other.
@@ -166,11 +166,11 @@ last would silently overwrite the other.
 SESSION_COOKIE=myapp_session
 
 # Legacy application cookie name (unchanged)
-LEGACY_BRIDGE_COOKIE=laravel_session
+LEGACY_BRIDGE_COOKIE=laravel-session
 ```
 
 If your legacy app is plain PHP, its cookie is typically `PHPSESSID`, which does not conflict
-with Laravel's `laravel_session` default — no change needed.
+with Laravel's `laravel-session` default — no change needed.
 
 The `legacy-bridge:verify` command will warn you automatically if both cookies share the same name.
 
@@ -345,7 +345,7 @@ Example output:
 
   ✓ Connected to legacy.sessions (1,842 sessions)
   ✓ Resolver ready: auto
-  ✓ Cookie alignment OK: legacy=PHPSESSID  laravel=laravel_session
+  ✓ Cookie alignment OK: legacy=PHPSESSID  laravel=laravel-session
 
   Testing session ID: abc123def456…
 
@@ -752,5 +752,5 @@ two are configured independently. See [Legacy Laravel applications](#legacy-lara
 ### Both cookies share the same name
 
 If your legacy app is also Laravel and never customised `SESSION_COOKIE`, it defaults to
-`laravel_session`. Set a distinct `SESSION_COOKIE` on the new application. See
+`laravel-session`. Set a distinct `SESSION_COOKIE` on the new application. See
 [Step 4 — Cookie naming](#step-4--cookie-naming).
