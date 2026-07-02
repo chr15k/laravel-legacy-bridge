@@ -268,7 +268,8 @@ Then point the config at it:
 > versions, firewalls, and authentication setups, LegacyBridge does not attempt to fully interpret
 > Symfony sessions by default.
 >
-> Instead, Symfony support is implemented through a custom resolver, allowing the application to define how a user identity should be > extracted from the session payload.
+> Instead, Symfony support would need to be implemented through a `custom` resolver, allowing the application to
+> define how a user identity should be > extracted from the session payload.
 
 ---
 
