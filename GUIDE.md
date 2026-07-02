@@ -21,6 +21,7 @@ including configuration choices, edge cases, and troubleshooting.
 - [Step 6 — Verify the configuration](#step-6--verify-the-configuration)
 - [Payload format](#payload-format)
 - [Legacy Laravel applications](#legacy-laravel-applications)
+- [Symfony applications](#legacy-symfony-applications)
 - [Carrying additional context](#carrying-additional-context)
 - [Invalidation strategies](#invalidation-strategies)
 - [Cookie alignment](#cookie-alignment)
@@ -230,7 +231,7 @@ Then point the config at it:
 ```
 
 
-> [!WARNING]
+> [!IMPORTANT]
 > **User ID mapping**
 >
 > The resolved user ID is passed directly to `Auth::loginUsingId()` and looked up against
@@ -255,6 +256,19 @@ Then point the config at it:
 > A missing mapping will cause `loginUsingId()` to return `false` silently — the user
 > lands on the guest flow with no error. If you see sessions being found but users not
 > being authenticated, an ID mismatch is the most likely cause.
+
+
+> [!NOTE]
+> **Symfony Custom Resolver**
+>
+> Symfony does not store authentication state as a simple session key. Instead, it stores a serialized
+> security token (typically  under _security_<firewall>). Because this structure varies between Symfony
+> versions, firewalls, and authentication setups, LegacyBridge does not attempt to fully interpret
+> Symfony sessions by default.
+>
+> Instead, Symfony support is implemented through a custom resolver, allowing the application to define how a user identity should be > extracted from the session payload.
+
+---
 
 ### Working with the LegacyPayload API
 
@@ -297,14 +311,6 @@ return $payload->resolveId('auth_user');
 | Serialized object | `['user' => User{id: 42}]` | `$payload->resolveId('user')` |
 | Cartalyst Sentinel | `['cartalyst_sentinel' => ...]` | `$payload->resolveId('cartalyst_sentinel.id')` |
 | Multiple guards | `['admin_id' => null, 'user_id' => 42]` | Check `has()` for each |
-
----
-
-# Symfony Resolver
-
-Symfony does not store authentication state as a simple session key. Instead, it stores a serialized security token (typically under _security_<firewall>). Because this structure varies between Symfony versions, firewalls, and authentication setups, LegacyBridge does not attempt to fully interpret Symfony sessions by default.
-
-Instead, Symfony support is implemented through a custom resolver, allowing the application to define how a user identity should be extracted from the session payload.
 
 ---
 
