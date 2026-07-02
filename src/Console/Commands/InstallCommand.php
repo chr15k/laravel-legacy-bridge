@@ -129,9 +129,9 @@ final class InstallCommand extends Command
     {
         return match ($preset) {
             'laravel' => [
-                'LEGACY_BRIDGE_COOKIE'           => 'laravel_session',
+                'LEGACY_BRIDGE_COOKIE'           => 'laravel-session',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'   => 'laravel',
-                'LEGACY_BRIDGE_COOKIE_ENCRYPTED' => 'laravel',
+                'LEGACY_BRIDGE_COOKIE_ENCRYPTION' => 'laravel',
                 'LEGACY_BRIDGE_APP_KEY'          => text(
                     label: 'Legacy app APP_KEY',
                     required: true,
@@ -141,14 +141,11 @@ final class InstallCommand extends Command
             'codeigniter3' => [
                 'LEGACY_BRIDGE_COOKIE'          => 'ci_session',
                 'LEGACY_BRIDGE_SESSION_TABLE'   => 'ci_sessions',
-                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'encrypted',
-                'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'key',
-                'LEGACY_BRIDGE_RESOLVER_KEY'    => 'user_id',
-                'LEGACY_BRIDGE_APP_KEY'         => text(
-                    label: 'CodeIgniter encryption_key',
-                    required: true,
-                    hint: 'Found in application/config/config.php',
-                ),
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'php_session',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_ID'                   => 'id',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD'              => 'data',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY'        => 'timestamp',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY_FORMAT' => 'datetime',
             ],
             'codeigniter4' => [
                 'LEGACY_BRIDGE_COOKIE'                                 => 'ci_session',
@@ -165,6 +162,11 @@ final class InstallCommand extends Command
                 'LEGACY_BRIDGE_COOKIE'          => 'PHPSESSID',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'php_session',
                 'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'custom',
+                'LEGACY_BRIDGE_APP_KEY'         => text(
+                    label: 'APP_SECRET',
+                    required: false,
+                    hint: '.env APP_SECRET (only needed for encrypted features)',
+                ),
             ],
             default => [
                 'LEGACY_BRIDGE_COOKIE' => text(

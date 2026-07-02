@@ -145,7 +145,7 @@ return [
     'table'              => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
     'lifetime'           => env('LEGACY_BRIDGE_LIFETIME', 120),
     'format'             => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
-    'cookie_encryption'  => env('LEGACY_BRIDGE_COOKIE_ENCRYPTED', 'none'), // 'none' | 'laravel'
+    'cookie_encryption'  => env('LEGACY_BRIDGE_COOKIE_ENCRYPTION', 'none'), // 'none' | 'laravel'
     'app_key'     => env('LEGACY_BRIDGE_APP_KEY'),
 
     'resolver' => [

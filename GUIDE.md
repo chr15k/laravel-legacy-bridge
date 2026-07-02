@@ -300,6 +300,14 @@ return $payload->resolveId('auth_user');
 
 ---
 
+# Symfony Resolver
+
+Symfony does not store authentication state as a simple session key. Instead, it stores a serialized security token (typically under _security_<firewall>). Because this structure varies between Symfony versions, firewalls, and authentication setups, LegacyBridge does not attempt to fully interpret Symfony sessions by default.
+
+Instead, Symfony support is implemented through a custom resolver, allowing the application to define how a user identity should be extracted from the session payload.
+
+---
+
 ## Step 6 — Verify the configuration
 
 Before routing any real traffic through the bridge, run:
@@ -429,7 +437,7 @@ If your legacy app never excluded its session cookie from encryption (the defaul
 Laravel apps), set:
 
 ```dotenv
-LEGACY_BRIDGE_COOKIE_ENCRYPTED=laravel
+LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel
 LEGACY_BRIDGE_APP_KEY=base64:your_app_key_here
 ```
 
@@ -439,7 +447,7 @@ your new application's key.
 If the legacy app explicitly excluded its session cookie from encryption, set:
 
 ```dotenv
-LEGACY_BRIDGE_COOKIE_ENCRYPTED=none
+LEGACY_BRIDGE_COOKIE_ENCRYPTION=none
 ```
 
 ### Payload encryption
@@ -464,7 +472,7 @@ it once and it is used wherever decryption is needed.
 The most common combination, covering a standard Laravel app with default settings:
 
 ```dotenv
-LEGACY_BRIDGE_COOKIE_ENCRYPTED=laravel
+LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel
 LEGACY_BRIDGE_PAYLOAD_FORMAT=laravel
 LEGACY_BRIDGE_APP_KEY=base64:your_app_key_here
 ```
@@ -734,7 +742,7 @@ a missing sessions table, or an incorrect `SESSION_CONNECTION`.
 ### Cookie is arriving encrypted or garbled
 
 If your legacy app is also Laravel, its session cookie is encrypted by default. Set
-`LEGACY_BRIDGE_COOKIE_ENCRYPTED=laravel` and `LEGACY_BRIDGE_APP_KEY` as described in
+`LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel` and `LEGACY_BRIDGE_APP_KEY` as described in
 [Legacy Laravel applications](#legacy-laravel-applications).
 
 ### Resolver returns null
