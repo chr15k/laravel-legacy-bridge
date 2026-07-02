@@ -5,16 +5,11 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Payload;
 
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
-use Chr15k\LegacyBridge\Config;
+use RuntimeException;
 
 final class PayloadDecoder
 {
     use DecryptsLegacySessionData;
-
-    public function __construct(private Config $config)
-    {
-        //
-    }
 
     public function decode(string $raw, string $format = 'auto'): LegacyPayload
     {
@@ -44,7 +39,7 @@ final class PayloadDecoder
         if ($decoded !== false) {
             $unserialized = @unserialize($decoded);
             if (is_array($unserialized)) {
-                return 'laravel'; // genuinely unserializes cleanly
+                return 'laravel';
             }
 
             if (is_array(json_decode($decoded, true))) {
@@ -56,10 +51,11 @@ final class PayloadDecoder
             return 'json';
         }
 
-        // Doesn't match any known plain format — likely encrypted, but
-        // auto-detection can't confirm this without the app_key.
-        // Surface this clearly rather than silently returning 'unknown'.
-        return $this->config->legacyAppKey() ? 'encrypted' : 'unknown';
+        try {
+            return $this->decrypt(payload: $raw) ? 'encrypted' : 'unknown';
+        } catch (RuntimeException) {
+            return 'unknown';
+        }
     }
 
     /**

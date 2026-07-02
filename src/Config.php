@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
-use Chr15k\LegacyBridge\Integrations\Laravel;
 use Illuminate\Contracts\Config\Repository;
 
 final readonly class Config
@@ -18,24 +17,28 @@ final readonly class Config
     |--------------------------------------------------------------------------
     */
 
-    public function integration(): ?string
-    {
-        return $this->string('legacy-bridge.integration', Laravel::class);
-    }
-
     public function cookie(): ?string
     {
         return $this->string('legacy-bridge.cookie.name', 'PHPSESSID');
     }
 
-    public function connection(): ?string
+    public function connection(): string
     {
-        return $this->string('legacy-bridge.connection', 'legacy');
+        return $this->string('legacy-bridge.database.connection', 'legacy');
     }
 
-    public function table(): ?string
+    public function table(): string
     {
-        return $this->string('legacy-bridge.table', 'sessions');
+        return $this->string('legacy-bridge.database.table', 'sessions');
+    }
+
+    /**
+     * @return array{id: string, payload: string, last_activity: string, last_activity_format: string}
+     */
+    public function sessionColumns(): array
+    {
+        /** @var array{id: string, payload: string, last_activity: string, last_activity_format: string} */
+        return config('legacy-bridge.database.columns');
     }
 
     public function lifetime(): int
@@ -45,9 +48,9 @@ final readonly class Config
         return is_int($value) ? $value : (int) (is_string($value) ? $value : 120);
     }
 
-    public function cookieEncryption(): ?bool
+    public function cookieEncryption(): ?string
     {
-        return $this->bool('legacy-bridge.cookie.encrypted', false);
+        return $this->string('legacy-bridge.cookie.encryption', 'none');
     }
 
     public function format(): ?string

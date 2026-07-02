@@ -6,11 +6,11 @@ namespace Chr15k\LegacyBridge\Http\Middleware;
 
 use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
-use Chr15k\LegacyBridge\Contracts\LegacyIntegration;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Data\LegacySession;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
+use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
 use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Auth\StatefulGuard;
@@ -25,7 +25,7 @@ final readonly class LegacySessionBridge
         private Auth $auth,
         private Config $config,
         private PayloadDecoder $decoder,
-        private LegacyIntegration $integration,
+        private LegacyDatabaseSessionHandler $sessionHandler,
         private LegacyUserResolver $resolver,
         private ?LegacyContextResolver $contextResolver = null,
     ) {}
@@ -42,8 +42,9 @@ final readonly class LegacySessionBridge
         try {
             $this->bridge($request);
         } catch (Throwable $throwable) {
-            // Never let bridge failures break the request lifecycle — the user will land on the guest flow.
-            $this->log('error', 'bridge failed', ['error' => $throwable->getMessage()]);
+            $this->log('error', 'bridge failed', [
+                'error' => $throwable->getMessage(),
+            ]);
         }
 
         $response = $next($request);
@@ -73,13 +74,13 @@ final readonly class LegacySessionBridge
     {
         $value = $this->fetchLegacyCookieValueFromRequest($request);
 
-        $sessionId = $this->integration->resolveSessionId($value);
+        $sessionId = $this->sessionHandler->resolveSessionId($value);
 
         if ($sessionId === null) {
             return null;
         }
 
-        $data = $this->integration->fetchSessionFromStore($sessionId);
+        $data = $this->sessionHandler->fetch($sessionId);
 
         if (! $data instanceof LegacySession) {
             return null;
@@ -160,14 +161,14 @@ final readonly class LegacySessionBridge
     {
         $value = $this->fetchLegacyCookieValueFromRequest($request);
 
-        $resolvedSessionId = $this->integration->resolveSessionId($value);
+        $resolvedSessionId = $this->sessionHandler->resolveSessionId($value);
 
         if ($this->config->invalidation() === 'never') {
             return;
         }
 
         try {
-            $this->integration->invalidateSession($resolvedSessionId);
+            $this->sessionHandler->invalidate($resolvedSessionId);
         } catch (Throwable $throwable) {
             $this->log('warning', 'could not invalidate legacy session', [
                 'error' => $throwable->getMessage(),

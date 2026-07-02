@@ -1,41 +1,6 @@
 <?php
 
-use Chr15k\LegacyBridge\Integrations\Laravel;
-
 return [
-
-    /*
-    |--------------------------------------------------------------------------
-    | Legacy Integration
-    |--------------------------------------------------------------------------
-    |
-    | Defines how the bridge interacts with your legacy application.
-    |
-    | An integration encapsulates all framework-specific logic required to:
-    | - Locate and read legacy session records
-    | - Decode and interpret session payloads
-    | - Resolve the authenticated user from session data
-    | - Handle any framework-specific quirks (schema, serialization, timestamps)
-    |
-    | Built-in integrations are provided for common legacy frameworks such as
-    | Laravel and CodeIgniter, but you may also implement your own by
-    | creating a class that implements:
-    |
-    |   \Chr15k\LegacyBridge\Contracts\Integration
-    |
-    | Example:
-    |
-    |   'integration' => \Chr15k\LegacyBridge\Integrations\Laravel::class,
-    |
-    | or a custom implementation:
-    |
-    |   'integration' => App\Bridge\MyLegacyIntegration::class,
-    |
-    | This approach allows the package to remain framework-agnostic while
-    | supporting a wide range of legacy application architectures.
-    |
-    */
-    'integration' => env('LEGACY_BRIDGE_INTEGRATION', Laravel::class),
 
     'cookie' => [
         /*
@@ -52,45 +17,62 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | Legacy Cookie Encrypted
+        | Legacy Cookie Encryption
         |--------------------------------------------------------------------------
         |
         | Whether the legacy session cookie value itself needs decrypting before
         | it can be used as a lookup key against the sessions table.
         |
-        | Note: this is independent of "payload.format" above. "payload.format" describes the
+        | "none"    — the cookie value is the raw session ID (plain PHP apps,
+        |             or a Laravel app that excluded this cookie from
+        |             EncryptCookies). This is the default for most legacy apps.
+        |
+        | "laravel" — the legacy app is itself a Laravel app and the cookie was
+        |             encrypted by its EncryptCookies middleware. The cookie
+        |             must be decrypted with legacy_app_key below to recover
+        |             the raw session ID before it can be looked up.
+        |
+        | Note: this is independent of "format" above. "format" describes the
         | session *payload* stored in the database; this describes the *cookie*
         | sent by the browser. A legacy Laravel app will typically need both
-        | "cookie_encryption" and "format" set, sharing the same app_key.
+        | "cookie_encryption" and "format" set, sharing the same legacy_app_key.
+        |
+        */
+        'encryption' => env('LEGACY_BRIDGE_COOKIE_ENCRYPTION', 'none'), // 'none' | 'laravel'
+
+    ],
+
+    'database' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Legacy Database Connection
+        |--------------------------------------------------------------------------
+        |
+        | The database connection name (from config/database.php) that points to
+        | your legacy application's database. Set to null if both applications
+        | share the same database connection.
+        |
+        */
+        'connection' => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Legacy Sessions Table
+        |--------------------------------------------------------------------------
+        |
+        | The table name and columns in the legacy database that stores session records.
         |
         */
 
-        'encrypted' => env('LEGACY_BRIDGE_COOKIE_ENCRYPTED', false),
+        'table' => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
+
+        'columns' => [
+            'id'                   => env('LEGACY_BRIDGE_SESSION_TABLE_COL_ID', 'id'),
+            'payload'              => env('LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD', 'payload'),
+            'last_activity'        => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY', 'last_activity'),
+            'last_activity_format' => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY_FORMAT', 'timestamp'), // 'timestamp' | 'datetime'
+        ],
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Legacy Database Connection
-    |--------------------------------------------------------------------------
-    |
-    | The database connection name (from config/database.php) that points to
-    | your legacy application's database. Set to null if both applications
-    | share the same database connection.
-    |
-    */
-
-    'connection' => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Legacy Sessions Table
-    |--------------------------------------------------------------------------
-    |
-    | The table name in the legacy database that stores session records.
-    |
-    */
-
-    'table' => env('LEGACY_BRIDGE_TABLE', 'sessions'),
 
     /*
     |--------------------------------------------------------------------------

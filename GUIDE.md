@@ -78,11 +78,11 @@ Add a `legacy` connection to `config/database.php`:
 
     'legacy' => [
         'driver'   => 'mysql',
-        'host'     => env('LEGACY_DB_HOST', '127.0.0.1'),
-        'port'     => env('LEGACY_DB_PORT', '3306'),
-        'database' => env('LEGACY_DB_DATABASE'),
-        'username' => env('LEGACY_DB_USERNAME'),
-        'password' => env('LEGACY_DB_PASSWORD'),
+        'host'     => env('LEGACY_BRIDGE_DB_HOST', '127.0.0.1'),
+        'port'     => env('LEGACY_BRIDGE_DB_PORT', '3306'),
+        'database' => env('LEGACY_BRIDGE_DB_DATABASE'),
+        'username' => env('LEGACY_BRIDGE_DB_USERNAME'),
+        'password' => env('LEGACY_BRIDGE_DB_PASSWORD'),
         'charset'  => 'utf8mb4',
         'prefix'   => '',
     ],
@@ -93,11 +93,11 @@ Then add the credentials to `.env`:
 
 ```dotenv
 LEGACY_BRIDGE_DB_CONNECTION=legacy
-LEGACY_DB_HOST=127.0.0.1
-LEGACY_DB_PORT=3306
-LEGACY_DB_DATABASE=your_legacy_database
-LEGACY_DB_USERNAME=your_user
-LEGACY_DB_PASSWORD=your_password
+LEGACY_BRIDGE_DB_HOST=127.0.0.1
+LEGACY_BRIDGE_DB_PORT=3306
+LEGACY_BRIDGE_DB_DATABASE=your_legacy_database
+LEGACY_BRIDGE_DB_USERNAME=your_user
+LEGACY_BRIDGE_DB_PASSWORD=your_password
 LEGACY_BRIDGE_COOKIE=PHPSESSID
 ```
 
@@ -108,7 +108,7 @@ your existing connection and specify the legacy sessions table name if it differ
 
 ```dotenv
 LEGACY_BRIDGE_DB_CONNECTION=mysql
-LEGACY_BRIDGE_TABLE=legacy_sessions
+LEGACY_BRIDGE_SESSION_TABLE=legacy_sessions
 ```
 
 ---
@@ -526,12 +526,12 @@ SESSION_DOMAIN=.yourdomain.com
 ## Shared database
 
 If both applications use the same database, set `LEGACY_BRIDGE_DB_CONNECTION` to your default
-connection and point `LEGACY_BRIDGE_TABLE` at the legacy sessions table (if it differs from
+connection and point `LEGACY_BRIDGE_SESSION_TABLE` at the legacy sessions table (if it differs from
 `sessions`):
 
 ```dotenv
 LEGACY_BRIDGE_DB_CONNECTION=mysql
-LEGACY_BRIDGE_TABLE=legacy_sessions
+LEGACY_BRIDGE_SESSION_TABLE=legacy_sessions
 ```
 
 No second DB connection is needed.
@@ -619,7 +619,7 @@ on the legacy sessions table or any bridge infrastructure.
 return [
     'cookie'            => env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'),
     'connection'        => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
-    'table'             => env('LEGACY_BRIDGE_TABLE', 'sessions'),
+    'table'             => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
     'lifetime'          => env('LEGACY_BRIDGE_LIFETIME', 120),
     'format'            => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
     'cookie_encryption' => env('LEGACY_BRIDGE_COOKIE_ENCRYPTED', 'none'), // 'none' | 'laravel'

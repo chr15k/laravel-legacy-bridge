@@ -35,8 +35,8 @@ abstract class TestCase extends BaseTestCase
                 'prefix' => '',
             ]);
 
-            $config->set('legacy-bridge.connection', 'testbench');
-            $config->set('legacy-bridge.table', 'legacy_sessions');
+            $config->set('legacy-bridge.database.connection', 'testbench');
+            $config->set('legacy-bridge.database.table', 'legacy_sessions');
 
             $config->set([
                 'queue.batching.database' => 'testbench',

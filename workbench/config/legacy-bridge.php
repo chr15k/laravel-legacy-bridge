@@ -36,7 +36,7 @@ return [
     |
     */
 
-    'table' => env('LEGACY_BRIDGE_TABLE', 'sessions'),
+    'table' => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
 
     /*
     |--------------------------------------------------------------------------

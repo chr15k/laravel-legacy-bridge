@@ -6,10 +6,10 @@ namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Console\Commands\InstallCommand;
 use Chr15k\LegacyBridge\Console\Commands\VerifyCommand;
-use Chr15k\LegacyBridge\Contracts\LegacyIntegration;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
+use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -48,14 +48,9 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
 
         $this->app->singleton(PayloadDecoder::class);
         $this->app->singleton(ResolverManager::class);
+        $this->app->singleton(LegacyDatabaseSessionHandler::class);
 
         $this->app->singleton(LegacyUserResolver::class, fn (Container $app) => $app->make(ResolverManager::class)->make());
-
-        $this->app->singleton(LegacyIntegration::class, function (Container $app) {
-            $config = $app->make(Config::class);
-
-            return $app->make($config->integration());
-        });
 
         $this->app->singleton(LegacySessionBridge::class);
     }

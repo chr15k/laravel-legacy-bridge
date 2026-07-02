@@ -315,7 +315,7 @@ it('handles multiple concurrent sessions for different users independently', fun
 // ---------------------------------------------------------------------------
 it('bridges a laravel encrypted cookie', function (): void {
     config()->set('legacy-bridge.payload.format', 'laravel');
-    config()->set('legacy-bridge.cookie.encrypted', true);
+    config()->set('legacy-bridge.cookie.encryption', 'laravel');
     config()->set('legacy-bridge.app_key', config('app.key'));
 
     User::factory()->create();

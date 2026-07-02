@@ -33,6 +33,7 @@ trait DecryptsLegacySessionData
             return null;
         }
 
+        // @todo - this is currently Laravel only...
         if ($isCookie) {
             $decrypted = CookieValuePrefix::remove($decrypted);
         }

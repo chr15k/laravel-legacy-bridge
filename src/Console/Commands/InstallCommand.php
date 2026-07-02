@@ -95,11 +95,11 @@ final class InstallCommand extends Command
 
         return [
             'LEGACY_BRIDGE_DB_CONNECTION' => 'legacy',
-            'LEGACY_DB_HOST'              => text(label: 'DB host', default: '127.0.0.1'),
-            'LEGACY_DB_PORT'              => text(label: 'DB port', default: '3306'),
-            'LEGACY_DB_DATABASE'          => text(label: 'DB database', required: true),
-            'LEGACY_DB_USERNAME'          => text(label: 'DB username', required: true),
-            'LEGACY_DB_PASSWORD'          => text(label: 'DB password'),
+            'LEGACY_BRIDGE_DB_HOST'       => text(label: 'DB host', default: '127.0.0.1'),
+            'LEGACY_BRIDGE_DB_PORT'       => text(label: 'DB port', default: '3306'),
+            'LEGACY_BRIDGE_DB_DATABASE'   => text(label: 'DB database', required: true),
+            'LEGACY_BRIDGE_DB_USERNAME'   => text(label: 'DB username', required: true),
+            'LEGACY_BRIDGE_DB_PASSWORD'   => text(label: 'DB password'),
         ];
     }
 
@@ -114,7 +114,7 @@ final class InstallCommand extends Command
                 default: config('database.default', 'mysql'),
                 hint: 'Must match an existing connection in config/database.php',
             ),
-            'LEGACY_BRIDGE_TABLE' => text(
+            'LEGACY_BRIDGE_SESSION_TABLE' => text(
                 label: 'Legacy sessions table name',
                 default: 'sessions',
                 hint: 'Only change this if the legacy table name differs from "sessions"',
@@ -140,7 +140,7 @@ final class InstallCommand extends Command
             ],
             'codeigniter3' => [
                 'LEGACY_BRIDGE_COOKIE'          => 'ci_session',
-                'LEGACY_BRIDGE_TABLE'           => 'ci_sessions',
+                'LEGACY_BRIDGE_SESSION_TABLE'   => 'ci_sessions',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'encrypted',
                 'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'key',
                 'LEGACY_BRIDGE_RESOLVER_KEY'    => 'user_id',
@@ -152,7 +152,7 @@ final class InstallCommand extends Command
             ],
             'codeigniter4' => [
                 'LEGACY_BRIDGE_COOKIE'          => 'ci_session',
-                'LEGACY_BRIDGE_TABLE'           => 'ci_sessions',
+                'LEGACY_BRIDGE_SESSION_TABLE'   => 'ci_sessions',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'php_session',
                 'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'key',
                 'LEGACY_BRIDGE_RESOLVER_KEY'    => 'user_id',
