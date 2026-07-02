@@ -110,7 +110,7 @@ php artisan legacy-bridge:verify
 php artisan legacy-bridge:verify --session-id=a_real_session_id
 ```
 
-That's it for the common case — the bundled `auto` resolver covers most plain PHP and standard Laravel legacy session structures out of the box. **A custom resolver is optional** and only needed if `auto` can't find your user ID; see [Implementing a custom resolver](GUIDE.md#step-5--implement-a-resolver-optional) in the guide.
+That's it for the common case — the bundled `auto` resolver covers most plain PHP and standard Laravel legacy session structures out of the box. **A custom resolver is optional** and only needed if `auto` can't find your user ID (or your User IDs need mapping); see [Implementing a custom resolver](GUIDE.md#step-5--implement-a-resolver-optional) in the guide.
 
 ---
 
