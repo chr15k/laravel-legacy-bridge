@@ -232,6 +232,7 @@ Then point the config at it:
 
 > [!WARNING]
 > **User ID mapping**
+>
 > The resolved user ID is passed directly to `Auth::loginUsingId()` and looked up against
 > your new application's users table. The bridge assumes legacy user IDs and new user IDs
 > are the same value.
