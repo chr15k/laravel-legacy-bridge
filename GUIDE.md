@@ -230,6 +230,7 @@ Then point the config at it:
 ],
 ```
 
+---
 
 > [!IMPORTANT]
 > **User ID mapping**
@@ -257,6 +258,7 @@ Then point the config at it:
 > lands on the guest flow with no error. If you see sessions being found but users not
 > being authenticated, an ID mismatch is the most likely cause.
 
+---
 
 > [!NOTE]
 > **Symfony Custom Resolver**
