@@ -644,16 +644,34 @@ on the legacy sessions table or any bridge infrastructure.
 // config/legacy-bridge.php
 
 return [
-    'cookie'            => env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'),
-    'connection'        => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
-    'table'             => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
-    'lifetime'          => env('LEGACY_BRIDGE_LIFETIME', 120),
-    'format'            => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
-    'cookie_encryption' => env('LEGACY_BRIDGE_COOKIE_ENCRYPTED', 'none'), // 'none' | 'laravel'
-    'app_key'    => env('LEGACY_BRIDGE_APP_KEY'),
+
+    'cookie' => [
+        'name'       => env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'),
+        'encryption' => env('LEGACY_BRIDGE_COOKIE_ENCRYPTION', 'none'),
+    ],
+
+    'database' => [
+        'connection' => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
+        'table'      => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
+
+        'columns' => [
+            'id'                   => env('LEGACY_BRIDGE_SESSION_TABLE_COL_ID', 'id'),
+            'payload'              => env('LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD', 'payload'),
+            'last_activity'        => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY', 'last_activity'),
+            'last_activity_format' => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY_FORMAT', 'timestamp'), // 'timestamp' | 'datetime'
+        ],
+    ],
+
+    'lifetime' => env('LEGACY_BRIDGE_LIFETIME', 120),
+
+    'payload' => [
+        'format' => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
+    ],
+
+    'app_key' => env('LEGACY_BRIDGE_APP_KEY'),
 
     'resolver' => [
-        'driver' => env('LEGACY_BRIDGE_RESOLVER_DRIVER', 'auto'), // 'auto' | 'key' | 'custom'
+        'driver' => env('LEGACY_BRIDGE_RESOLVER_DRIVER', 'auto'),
         'key'    => env('LEGACY_BRIDGE_RESOLVER_KEY', 'user_id'),
         'class'  => env('LEGACY_BRIDGE_RESOLVER_CLASS'),
     ],
@@ -663,32 +681,38 @@ return [
         'flash'      => false,
     ],
 
-    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'), // 'after_write' | 'immediate' | 'never'
+    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'),
 
     'logging' => [
         'enabled' => env('LEGACY_BRIDGE_LOGGING', true),
         'channel' => env('LEGACY_BRIDGE_LOG_CHANNEL', null),
     ],
+
 ];
+
 ```
 
 | Key | Default | Description |
-|---|---|---|
-| `cookie` | `PHPSESSID` | Name of the legacy session cookie |
-| `connection` | `legacy` | DB connection name for the legacy database |
-| `table` | `sessions` | Table name for legacy sessions |
-| `lifetime` | `120` | Minutes a legacy session remains valid |
-| `format` | `auto` | Legacy session payload format |
-| `cookie_encryption` | `none` | Whether the cookie value itself needs decrypting (`none` or `laravel`) |
-| `app_key` | — | The legacy app's `APP_KEY`, used for cookie and/or payload decryption |
-| `resolver.driver` | `auto` | `auto`, `key`, or `custom` |
-| `resolver.key` | `user_id` | Dot-notation path used by the `key` driver |
-| `resolver.class` | — | FQCN of a custom resolver, used by the `custom` driver |
-| `context.carry_keys` | `[]` | Additional session keys to carry across the boundary |
-| `context.flash` | `false` | Whether to carry legacy flash data |
-| `invalidation` | `after_write` | When to delete the legacy session row |
-| `logging.enabled` | `true` | Whether bridge activity is logged |
-| `logging.channel` | — | Log channel (defaults to the app's default channel) |
+| --- | --- | --- |
+| `cookie.name` | `PHPSESSID` | Name of the legacy session cookie. |
+| `cookie.encryption` | `none` | Whether the cookie value itself is encrypted (`none` or `laravel`). |
+| `database.connection` | `legacy` | Database connection containing the legacy session table. |
+| `database.table` | `sessions` | Name of the legacy session table. |
+| `database.columns.id` | `id` | Column containing the session identifier. |
+| `database.columns.payload` | `payload` | Column containing the serialized session payload. |
+| `database.columns.last_activity` | `last_activity` | Column used to determine whether a session has expired. |
+| `database.columns.last_activity_format` | `timestamp` | Format of the `last_activity` column (`timestamp` or `datetime`). |
+| `lifetime` | `120` | Number of minutes a legacy session remains valid. |
+| `payload.format` | `auto` | Format of the stored session payload (`auto`, `laravel`, `php_session`, `json`, or `encrypted`). |
+| `app_key` | — | The legacy Laravel `APP_KEY`, used for cookie and/or payload decryption. |
+| `resolver.driver` | `auto` | Strategy used to resolve the authenticated user (`auto`, `key`, or `custom`). |
+| `resolver.key` | `user_id` | Dot-notation path used by the `key` resolver. |
+| `resolver.class` | — | Fully qualified class name of a custom resolver. |
+| `context.carry_keys` | `[]` | Additional session keys to copy into the new Laravel session. |
+| `context.flash` | `false` | Whether to carry legacy flash data. |
+| `invalidation` | `after_write` | When to invalidate the legacy session (`after_write`, `immediate`, or `never`). |
+| `logging.enabled` | `true` | Whether successful bridges are logged. |
+| `logging.channel` | — | Log channel to use (defaults to Laravel's default channel). |
 
 ---
 
