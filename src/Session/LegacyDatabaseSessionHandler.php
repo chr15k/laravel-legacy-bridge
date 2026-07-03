@@ -1,12 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Chr15k\LegacyBridge\Session;
 
-use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Data\LegacySession;
+use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
+use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 
@@ -33,19 +37,21 @@ final readonly class LegacyDatabaseSessionHandler
     {
         $cols = $this->config->sessionColumns();
 
+        $semantics = $this->config->sessionTimeSemantics();
+        $format = $this->config->sessionTimeFormat();
+
+        $threshold = $this->threshold();
+
         $query = DB::connection($this->config->connection())
             ->table($this->config->table())
             ->where($cols['id'], $sessionId);
 
-        $threshold = $this->threshold();
-
-        if ($includeExpired === false) {
+        if (! $includeExpired) {
             $query->where(
-                $cols['last_activity'],
+                $cols['time'],
                 '>',
-                $this->formatForQuery(
-                    $threshold,
-                    $cols['last_activity_format']
+                $format->toStorage(
+                    $semantics->representsExpires() ? now() : $threshold,
                 )
             );
         }
@@ -56,10 +62,8 @@ final readonly class LegacyDatabaseSessionHandler
             return null;
         }
 
-        $activity = $this->resolveLastActivity(
-            $row->{$cols['last_activity']},
-            $cols['last_activity_format']
-        );
+        $rawTime = $row->{$cols['time']};
+        $activity = $this->resolveLastActivity($rawTime, $semantics, $format);
 
         return new LegacySession(
             id: $row->{$cols['id']},
@@ -68,8 +72,8 @@ final readonly class LegacyDatabaseSessionHandler
             userAgent: $row->user_agent ?? null,
             payload: $row->{$cols['payload']},
             lastActivity: $activity->timestamp,
-            expired: $threshold->isAfter($activity),
-            age: now()->diffInMinutes($activity)
+            expired: $activity->isBefore($threshold),
+            age: now()->diffInMinutes($activity),
         );
     }
 
@@ -77,7 +81,7 @@ final readonly class LegacyDatabaseSessionHandler
     {
         DB::connection($this->config->connection())
             ->table($this->config->table())
-            ->where('id', $sessionId)
+            ->where($this->config->sessionColumns()['id'], $sessionId)
             ->delete();
 
         Cookie::queue(Cookie::forget($this->config->cookie()));
@@ -88,17 +92,18 @@ final readonly class LegacyDatabaseSessionHandler
         return now()->subMinutes($this->config->lifetime());
     }
 
-    private function formatForQuery(CarbonInterface $carbon, string $format): int|string
-    {
-        return $format === 'datetime' ? $carbon->toDateTimeString() : $carbon->timestamp;
-    }
+    private function resolveLastActivity(
+        mixed $value,
+        SessionTimeSemantics $semantics,
+        SessionTimeFormat $format,
+    ): CarbonImmutable {
+        $carbon = $format->fromStorage($value);
 
-    private function resolveLastActivity(string|int $value, string $format): CarbonInterface
-    {
-        if ($format === 'datetime' && is_string($value)) {
-            return Carbon::parse($value);
-        }
-
-        return Carbon::createFromTimestamp($value);
+        return match ($semantics) {
+            SessionTimeSemantics::Activity => $carbon,
+            // For expires semantics, back-calculate last_activity so expired/age
+            // on LegacySession remain consistent regardless of which semantics is used
+            SessionTimeSemantics::Expires => $carbon->subMinutes($this->config->lifetime()),
+        };
     }
 }

@@ -674,8 +674,8 @@ return [
         'columns' => [
             'id'                   => env('LEGACY_BRIDGE_SESSION_TABLE_COL_ID', 'id'),
             'payload'              => env('LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD', 'payload'),
-            'last_activity'        => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY', 'last_activity'),
-            'last_activity_format' => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY_FORMAT', 'timestamp'), // 'timestamp' | 'datetime'
+            'last_activity'        => env('LEGACY_BRIDGE_SESSION_TABLE_COL_TIME', 'last_activity'),
+            'last_activity_format' => env('LEGACY_BRIDGE_SESSION_TABLE_TIME_FORMAT', 'timestamp'), // 'timestamp' | 'datetime'
         ],
     ],
 
@@ -717,8 +717,8 @@ return [
 | `database.table` | `sessions` | Name of the legacy session table. |
 | `database.columns.id` | `id` | Column containing the session identifier. |
 | `database.columns.payload` | `payload` | Column containing the serialized session payload. |
-| `database.columns.last_activity` | `last_activity` | Column used to determine whether a session has expired. |
-| `database.columns.last_activity_format` | `timestamp` | Format of the `last_activity` column (`timestamp` or `datetime`). |
+| `database.columns.time` | `last_activity` | Column used to determine whether a session has expired. |
+| `database.columns.time` | `timestamp` | Format of the `last_activity` column (`timestamp` or `datetime`). |
 | `lifetime` | `120` | Number of minutes a legacy session remains valid. |
 | `payload.format` | `auto` | Format of the stored session payload (`auto`, `laravel`, `php_session`, `json`, or `encrypted`). |
 | `app_key` | — | The legacy Laravel `APP_KEY`, used for cookie and/or payload decryption. |

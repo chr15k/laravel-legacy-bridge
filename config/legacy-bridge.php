@@ -1,5 +1,8 @@
 <?php
 
+use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
+use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
+
 return [
 
     'cookie' => [
@@ -67,10 +70,16 @@ return [
         'table' => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
 
         'columns' => [
-            'id'                   => env('LEGACY_BRIDGE_SESSION_TABLE_COL_ID', 'id'),
-            'payload'              => env('LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD', 'payload'),
-            'last_activity'        => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY', 'last_activity'),
-            'last_activity_format' => env('LEGACY_BRIDGE_SESSION_TABLE_COL_LAST_ACTIVITY_FORMAT', 'timestamp'), // 'timestamp' | 'datetime'
+            'id'      => env('LEGACY_BRIDGE_SESSION_TABLE_COL_ID', 'id'),
+            'payload' => env('LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD', 'payload'),
+            'time'    => env('LEGACY_BRIDGE_SESSION_TABLE_COL_TIME', 'last_activity'),
+        ],
+
+        'time' => [
+            'semantics' => SessionTimeSemantics::tryFrom(env('LEGACY_BRIDGE_SESSION_TIME_SEMANTICS'))
+                ?? SessionTimeSemantics::Activity,
+            'format' => SessionTimeFormat::tryFrom(env('LEGACY_BRIDGE_SESSION_TIME_FORMAT'))
+                ?? SessionTimeFormat::Timestamp,
         ],
     ],
 

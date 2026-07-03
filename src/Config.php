@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
+use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
 use Illuminate\Contracts\Config\Repository;
 
 final readonly class Config
@@ -33,12 +35,22 @@ final readonly class Config
     }
 
     /**
-     * @return array{id: string, payload: string, last_activity: string, last_activity_format: string}
+     * @return array{id: string, payload: string, time: string}
      */
     public function sessionColumns(): array
     {
-        /** @var array{id: string, payload: string, last_activity: string, last_activity_format: string} */
+        /** @var array{id: string, payload: string, time: string} */
         return config('legacy-bridge.database.columns');
+    }
+
+    public function sessionTimeSemantics(): SessionTimeSemantics
+    {
+        return config('legacy-bridge.database.time.semantics');
+    }
+
+    public function sessionTimeFormat(): SessionTimeFormat
+    {
+        return config('legacy-bridge.database.time.format');
     }
 
     public function lifetime(): int
