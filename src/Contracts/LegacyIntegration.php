@@ -10,7 +10,7 @@ interface LegacyIntegration
 {
     public function fetchSessionFromStore(string $sessionId): ?LegacySession;
 
-    public function resolveSessionId(string|array|null $value): ?string;
+    public function resolveSessionIdFromCookieValue(string|array|null $value): ?string;
 
     public function invalidateSession(string $sessionId);
 }

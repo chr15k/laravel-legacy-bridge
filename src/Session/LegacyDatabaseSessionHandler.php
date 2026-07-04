@@ -20,14 +20,16 @@ final readonly class LegacyDatabaseSessionHandler
 
     public function __construct(private Config $config) {}
 
-    public function resolveSessionId(string|array|null $value): ?string
+    public function resolveSessionIdFromCookieValue(string|array|null $value): ?string
     {
         if (! is_string($value)) {
             return null;
         }
 
-        if ($this->config->cookieEncryption() === 'laravel') {
-            return $this->decrypt(payload: $value, unserialize: false, isCookie: true);
+        $encryption = app(Config::class)->cookieEncryption();
+
+        if ($encryption->isLaravel()) {
+            return $this->decryptCookieValue(payload: $value, unserialize: false);
         }
 
         return $value;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Enums\CookieEncryption;
 use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
 use Illuminate\Contracts\Config\Repository;
@@ -60,9 +61,10 @@ final readonly class Config
         return is_int($value) ? $value : (int) (is_string($value) ? $value : 120);
     }
 
-    public function cookieEncryption(): ?string
+    public function cookieEncryption(): CookieEncryption
     {
-        return $this->string('legacy-bridge.cookie.encryption', 'none');
+        return CookieEncryption::tryFrom($this->string('legacy-bridge.cookie.encryption'))
+            ?? CookieEncryption::None;
     }
 
     public function format(): ?string

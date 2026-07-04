@@ -8,12 +8,24 @@ use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Exceptions\MissingLegacyAppKeyException;
 use Illuminate\Cookie\CookieValuePrefix;
 use Illuminate\Encryption\Encrypter;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 trait DecryptsLegacySessionData
 {
-    public function decrypt(string $payload, bool $unserialize = true, bool $isCookie = false): ?string
+    public function decryptCookieValue(string $payload, bool $unserialize = true): ?string
+    {
+        $decrypted = $this->decrypt($payload, $unserialize);
+
+        $encryption = app(Config::class)->cookieEncryption();
+
+        if ($encryption->isLaravel()) {
+            return CookieValuePrefix::remove($decrypted);
+        }
+
+        return $decrypted;
+    }
+
+    public function decrypt(string $payload, bool $unserialize = true): ?string
     {
         $key = app(Config::class)->legacyAppKey();
 
@@ -21,9 +33,13 @@ trait DecryptsLegacySessionData
             throw new MissingLegacyAppKeyException;
         }
 
-        $keyBytes = Str::startsWith($key, 'base64:') ? base64_decode(Str::after($key, 'base64:')) : $key;
+        $keyBytes = Str::startsWith($key, 'base64:')
+            ? base64_decode(Str::after($key, 'base64:'))
+            : $key;
 
-        $cipher = Encrypter::supported($keyBytes, 'AES-256-CBC') ? 'AES-256-CBC' : 'AES-128-CBC';
+        $cipher = Encrypter::supported($keyBytes, 'AES-256-CBC')
+            ? 'AES-256-CBC'
+            : 'AES-128-CBC';
 
         $encrypter = new Encrypter($keyBytes, $cipher);
 
@@ -32,13 +48,6 @@ trait DecryptsLegacySessionData
         if (! is_string($decrypted)) {
             return null;
         }
-
-        // @todo - this is currently Laravel only...
-        if ($isCookie) {
-            $decrypted = CookieValuePrefix::remove($decrypted);
-        }
-
-        Log::debug('Decrypted data', ['value' => $decrypted]);
 
         return $decrypted;
     }

@@ -8,6 +8,7 @@ use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Data\LegacySession;
+use Chr15k\LegacyBridge\Events\LegacySessionBridged;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
@@ -74,7 +75,7 @@ final readonly class LegacySessionBridge
     {
         $value = $this->fetchLegacyCookieValueFromRequest($request);
 
-        $sessionId = $this->sessionHandler->resolveSessionId($value);
+        $sessionId = $this->sessionHandler->resolveSessionIdFromCookieValue($value);
 
         if ($sessionId === null) {
             return null;
@@ -104,6 +105,8 @@ final readonly class LegacySessionBridge
         $guard->loginUsingId($userId);
 
         $this->hydrateContext($userId, $payload);
+
+        LegacySessionBridged::dispatch($userId, $sessionId, $payload);
 
         if ($this->config->invalidation() === 'immediate') {
             $this->invalidateLegacySession($request);
@@ -161,7 +164,7 @@ final readonly class LegacySessionBridge
     {
         $value = $this->fetchLegacyCookieValueFromRequest($request);
 
-        $resolvedSessionId = $this->sessionHandler->resolveSessionId($value);
+        $resolvedSessionId = $this->sessionHandler->resolveSessionIdFromCookieValue($value);
 
         if ($this->config->invalidation() === 'never') {
             return;
