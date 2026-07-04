@@ -27,5 +27,5 @@ interface LegacyUserResolver
      *           ?? $payload->resolveId('user_id');
      *   }
      */
-    public function resolve(LegacyPayload $payload): ?int;
+    public function resolve(LegacyPayload $payload): int|string|null;
 }

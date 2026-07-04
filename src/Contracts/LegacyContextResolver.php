@@ -24,5 +24,5 @@ interface LegacyContextResolver
      *
      * @return array<string, mixed> An associative array of session keys and values to carry into Laravel's session.
      */
-    public function resolve(?int $userId, LegacyPayload $payload): array;
+    public function resolve(int|string|null $userId, LegacyPayload $payload): array;
 }

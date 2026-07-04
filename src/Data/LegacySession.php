@@ -8,7 +8,7 @@ final readonly class LegacySession
 {
     public function __construct(
         public string $id,
-        public ?int $userId,
+        public int|string|null $userId,
         public ?string $ipAddress,
         public ?string $userAgent,
         public string $payload,

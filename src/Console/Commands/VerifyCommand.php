@@ -233,7 +233,7 @@ final class VerifyCommand extends Command
         return ! $data->expired;
     }
 
-    private function userExists(int $userId): bool
+    private function userExists(int|string $userId): bool
     {
         $modelClass = config('auth.providers.users.model');
 

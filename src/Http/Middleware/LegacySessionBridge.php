@@ -7,8 +7,12 @@ namespace Chr15k\LegacyBridge\Http\Middleware;
 use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
-use Chr15k\LegacyBridge\Data\LegacySession;
+use Chr15k\LegacyBridge\Data\BridgeContext;
+use Chr15k\LegacyBridge\Enums\BridgeFailureReason;
 use Chr15k\LegacyBridge\Events\LegacySessionBridged;
+use Chr15k\LegacyBridge\Events\LegacySessionBridgeError;
+use Chr15k\LegacyBridge\Events\LegacySessionBridgeFailed;
+use Chr15k\LegacyBridge\Exceptions\BridgeException;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
@@ -16,7 +20,6 @@ use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -32,96 +35,100 @@ final readonly class LegacySessionBridge
     ) {}
 
     /**
-     * @param  Closure(Request): (Response)  $next
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $this->shouldBridge($request)) {
+        if ($this->auth->guard()->check()) {
             return $next($request);
         }
 
+        $sessionId = null;
+
         try {
-            $this->bridge($request);
-        } catch (Throwable $throwable) {
-            $this->log('error', 'bridge failed', [
-                'error' => $throwable->getMessage(),
-            ]);
+            $sessionId = $this->bridge($request);
+        } catch (BridgeException $e) {
+            LegacySessionBridgeFailed::dispatch($e->reason, $e->context);
+        } catch (Throwable $e) {
+            LegacySessionBridgeError::dispatch($e);
         }
 
         $response = $next($request);
 
-        if ($this->config->shouldInvalidateAfterWrite()) {
-            $this->invalidateLegacySession($request);
+        if ($sessionId && $this->config->shouldInvalidateAfterWrite()) {
+            $this->sessionHandler->invalidate($sessionId);
         }
 
         return $response;
     }
 
-    private function fetchLegacyCookieValueFromRequest(Request $request)
+    private function bridge(Request $request): string
     {
-        return $request->cookie($this->config->cookie());
-    }
+        $ctx = $this->initializeContext($request);
 
-    private function shouldBridge(Request $request): bool
-    {
-        if ($this->auth->guard()->check()) {
-            return false;
+        if (! is_string($ctx->cookieValue)) {
+            throw BridgeException::make(BridgeFailureReason::MissingCookie, $ctx);
         }
 
-        return (bool) $this->fetchLegacyCookieValueFromRequest($request);
-    }
+        $sessionId = $this->sessionHandler->resolveSessionIdFromCookieValue($ctx->cookieValue)
+            ?? throw BridgeException::make(BridgeFailureReason::InvalidCookie, $ctx);
 
-    private function bridge(Request $request): ?string
-    {
-        $value = $this->fetchLegacyCookieValueFromRequest($request);
+        $ctx = $ctx->withSessionId($sessionId);
 
-        $sessionId = $this->sessionHandler->resolveSessionIdFromCookieValue($value);
-
-        if ($sessionId === null) {
-            return null;
-        }
-
-        $data = $this->sessionHandler->fetch($sessionId);
-
-        if (! $data instanceof LegacySession) {
-            return null;
-        }
+        $data = $this->sessionHandler->fetch($sessionId)
+            ?? throw BridgeException::make(BridgeFailureReason::SessionNotFound, $ctx);
 
         $payload = $this->decoder->decode($data->payload, $this->config->format());
+        $ctx = $ctx->withPayload($payload);
 
         if ($payload->isEmpty()) {
-            return null;
+            throw BridgeException::make(BridgeFailureReason::PayloadDecodeFailed, $ctx);
         }
 
-        $userId = $this->resolver->resolve($payload);
+        $userId = $this->resolver->resolve($payload)
+            ?? throw BridgeException::make(BridgeFailureReason::UserNotResolved, $ctx);
 
-        if ($userId === null) {
-            return null;
-        }
+        $ctx = $ctx->withUserId($userId);
 
         /** @var StatefulGuard $guard */
         $guard = $this->auth->guard();
 
-        $guard->loginUsingId($userId);
+        if (! $guard->loginUsingId($userId)) {
+            throw BridgeException::make(BridgeFailureReason::AuthenticationFailed, $ctx);
+        }
 
         $this->hydrateContext($userId, $payload);
 
-        LegacySessionBridged::dispatch($userId, $sessionId, $payload);
+        LegacySessionBridged::dispatch(
+            userId: $userId,
+            sessionId: $sessionId,
+            payload: $payload,
+        );
 
         if ($this->config->invalidation() === 'immediate') {
-            $this->invalidateLegacySession($request);
+            $this->sessionHandler->invalidate($sessionId);
         }
-
-        $this->log('info', 'session bridged', [
-            'user_id'    => $userId,
-            'session_id' => mb_substr($sessionId, 0, 8).'…',
-            'format'     => $payload->format(),
-        ]);
 
         return $sessionId;
     }
 
-    private function hydrateContext(int $userId, LegacyPayload $payload): void
+    private function initializeContext(Request $request): BridgeContext
+    {
+        $cookie = $this->config->cookie();
+
+        return new BridgeContext(
+            cookieName: $cookie,
+            requestContext: [
+                'ip'         => $request->ip() ?? 'unknown',
+                'path'       => $request->path(),
+                'user_agent' => $request->userAgent() ?? 'unknown',
+                'method'     => $request->method(),
+            ],
+            cookieValue: $request->cookie($cookie),
+        );
+    }
+
+    private function hydrateContext(int|string $userId, LegacyPayload $payload): void
     {
         $carryKeys = $this->config->contextCarryKeys();
 
@@ -158,40 +165,5 @@ final readonly class LegacySessionBridge
                 session([$key => $value]);
             }
         }
-    }
-
-    private function invalidateLegacySession(Request $request): void
-    {
-        $value = $this->fetchLegacyCookieValueFromRequest($request);
-
-        $resolvedSessionId = $this->sessionHandler->resolveSessionIdFromCookieValue($value);
-
-        if ($this->config->invalidation() === 'never') {
-            return;
-        }
-
-        try {
-            $this->sessionHandler->invalidate($resolvedSessionId);
-        } catch (Throwable $throwable) {
-            $this->log('warning', 'could not invalidate legacy session', [
-                'error' => $throwable->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * @param  array<mixed>  $context
-     */
-    private function log(string $level, string $message, array $context = []): void
-    {
-        if (! $this->config->loggingEnabled()) {
-            return;
-        }
-
-        $channel = $this->config->loggingChannel();
-
-        $logger = is_string($channel) ? Log::channel($channel) : Log::getFacadeRoot();
-
-        $logger->{$level}('legacy-bridge: '.$message, $context);
     }
 }
