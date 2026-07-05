@@ -140,7 +140,7 @@ return [
     |
     */
 
-    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'),
+    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION_STRATEGY', 'after_write'),
 
     /*
     |--------------------------------------------------------------------------

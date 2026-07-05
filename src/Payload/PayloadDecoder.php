@@ -12,11 +12,9 @@ final class PayloadDecoder
 {
     use DecryptsLegacySessionData;
 
-    public function decode(string $raw, PayloadFormat $format): LegacyPayload
+    public function decode(string $raw, PayloadFormat $config): LegacyPayload
     {
-        if ($format === PayloadFormat::Auto) {
-            $format = $this->detect($raw);
-        }
+        $format = $config === PayloadFormat::Auto ? $this->detect($raw) : $config;
 
         $data = match ($format) {
             PayloadFormat::PhpSession => $this->decodePhpSession($raw),
@@ -26,7 +24,7 @@ final class PayloadDecoder
             default                   => [],
         };
 
-        return new LegacyPayload($data, $format);
+        return new LegacyPayload($data);
     }
 
     public function detect(string $raw): ?PayloadFormat

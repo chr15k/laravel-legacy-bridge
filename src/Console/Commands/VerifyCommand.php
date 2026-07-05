@@ -220,7 +220,6 @@ final class VerifyCommand extends Command
             content: [
                 Element::keyValueList([
                     'session_id' => mb_substr($sessionId, 0, 12).'…',
-                    'format'     => $payload->format(),
                     'age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
                     'keys'       => implode(', ', array_keys($payload->all())),
                     'user_id'    => (string) $userId,

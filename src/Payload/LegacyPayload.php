@@ -19,7 +19,7 @@ final readonly class LegacyPayload
     /**
      * @param  array<mixed>  $data
      */
-    public function __construct(private array $data, private PayloadFormat $format) {}
+    public function __construct(private array $data) {}
 
     /**
      * Get a value from the payload using dot-notation.
@@ -89,14 +89,6 @@ final readonly class LegacyPayload
     public function only(array $keys): array
     {
         return Arr::only($this->data, $keys);
-    }
-
-    /**
-     * Return the detected format of the original raw payload.
-     */
-    public function format(): string
-    {
-        return $this->format->value;
     }
 
     /**

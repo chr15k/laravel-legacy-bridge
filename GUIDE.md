@@ -222,7 +222,6 @@ $payload->resolveId('user_id');        // safe ID resolution — handles scalar,
 $payload->has('cart_id');              // existence check (false if null)
 $payload->all();                       // all decoded keys as array
 $payload->only(['locale', 'timezone']); // subset
-$payload->format();                    // detected format string
 $payload->isEmpty();                   // true if no data
 ```
 
@@ -515,7 +514,7 @@ $this->app->singleton(LegacyContextResolver::class, function () {
 | `never` | Leave legacy session intact | Debugging only |
 
 ```dotenv
-LEGACY_BRIDGE_INVALIDATION=after_write
+LEGACY_BRIDGE_INVALIDATION_STRATEGY=after_write
 ```
 
 ---

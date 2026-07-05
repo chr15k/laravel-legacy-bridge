@@ -225,7 +225,7 @@ return [
         'flash'      => false,
     ],
 
-    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'), // 'after_write' | 'immediate' | 'never'
+    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION_STRATEGY', 'after_write'), // 'after_write' | 'immediate' | 'never'
 
     'logging' => [
         'enabled' => env('LEGACY_BRIDGE_LOGGING', true),
