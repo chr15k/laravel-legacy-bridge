@@ -7,15 +7,13 @@ namespace Chr15k\LegacyBridge;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Resolvers\AutoResolver;
 use Chr15k\LegacyBridge\Resolvers\KeyResolver;
+use Chr15k\LegacyBridge\Support\Config;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
 
-final readonly class ResolverManager
+final readonly class LegacyBridgeResolverManager
 {
-    public function __construct(private Container $app, private Config $config)
-    {
-        //
-    }
+    public function __construct(private Container $app, private Config $config) {}
 
     public function make(): LegacyUserResolver
     {

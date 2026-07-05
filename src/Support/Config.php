@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chr15k\LegacyBridge;
+namespace Chr15k\LegacyBridge\Support;
 
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Enums\CookieEncryption;

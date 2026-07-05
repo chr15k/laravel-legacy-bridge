@@ -10,31 +10,13 @@ use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
+use Chr15k\LegacyBridge\Support\Config;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
-/**
- * Pipeline...
- *
- *   Request
- *       ↓
- *   Cookie value
- *       ↓
- *   Integration
- *       ↓
- *   LegacySession DTO
- *       ↓
- *   PayloadDecoder
- *       ↓
- *   Decoded payload
- *       ↓
- *   UserResolver
- *       ↓
- *   User ID
- */
 final class LegacyBridgeServiceProvider extends ServiceProvider
 {
     private const string CONFIG = 'legacy-bridge';
@@ -47,10 +29,10 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
         $this->app->singleton(Config::class, fn (Container $app): Config => new Config($app->make(Repository::class)));
 
         $this->app->singleton(PayloadDecoder::class);
-        $this->app->singleton(ResolverManager::class);
+
         $this->app->singleton(LegacyDatabaseSessionHandler::class);
 
-        $this->app->singleton(LegacyUserResolver::class, fn (Container $app) => $app->make(ResolverManager::class)->make());
+        $this->app->singleton(LegacyUserResolver::class, fn (Container $app) => $app->make(LegacyBridgeResolverManager::class)->make());
 
         $this->app->singleton(LegacySessionBridge::class);
     }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Console\Commands;
 
-use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Data\LegacySession;
+use Chr15k\LegacyBridge\LegacyBridgeResolverManager;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
-use Chr15k\LegacyBridge\ResolverManager;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
+use Chr15k\LegacyBridge\Support\Config;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -34,7 +34,7 @@ final class VerifyCommand extends Command
 {
     public function __construct(
         private readonly PayloadDecoder $decoder,
-        private readonly ResolverManager $resolverManager,
+        private readonly LegacyBridgeResolverManager $resolverManager,
         private readonly Config $config,
         private readonly LegacyDatabaseSessionHandler $sessionHandler
     ) {

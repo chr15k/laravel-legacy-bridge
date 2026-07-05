@@ -441,3 +441,27 @@ describe('column mapping', function (): void {
         $this->assertAuthenticated();
     });
 });
+
+// ---------------------------------------------------------------------------
+// Laravel encryped cookie
+// ---------------------------------------------------------------------------
+it('bridges a laravel encrypted cookie', function (): void {
+    config()->set('legacy-bridge.payload.format', 'laravel');
+    config()->set('legacy-bridge.cookie.encryption', 'laravel');
+    config()->set('legacy-bridge.app_key', config('app.key'));
+
+    User::factory()->create();
+
+    DB::table('legacy_sessions')->insert([
+        'user_id'       => 1,
+        'id'            => '4yGsgGexAIrwYcZ4Ak0bOSMQXvFADzr7BWzE2TZD',
+        'payload'       => 'eyJfdG9rZW4iOiJVcDJDaW1RZU42UnNPaG9SaHZTZTloUVFaRWNjcjFFNVlZOWhEUTM4IiwibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiOjEsIl9mbGFzaCI6eyJvbGQiOltdLCJuZXciOltdfSwiX3ByZXZpb3VzIjp7InVybCI6Imh0dHA6XC9cL2xvY2FsaG9zdDo4MDAwIiwicm91dGUiOiJob21lIn19',
+        'last_activity' => now()->timestamp,
+    ]);
+
+    $this->withUnencryptedCookies(['PHPSESSID' => urldecode('eyJpdiI6InNCQVo1OWZuSTZZZEdpbXZQVjBUSmc9PSIsInZhbHVlIjoiajZMa0VyZDl3QjVnZUtuUyttZmpjSWE0NXh4ZlZkYWlDcFBQcU5aQkRlQnZpbHpHZFExNzQyQjRFYTg2NDRkcVVzaG45ZWZMTFNFL3A2WGp1WW1SNFBxU25XWCt2eDhXQm1kWG1KaDU2cVMvRm9CSGNBaTVaelpEQklReHl5OVciLCJtYWMiOiIxMmMxNjVkZjEzYTRjNDkxNjZiYjllOWQ2N2ViNGE5NTA5YWJmNGE2MDZjMmY3YWVhZWNiMzQ3NTViOTRiNDMzIiwidGFnIjoiIn0%3D')])
+        ->get('/protected')
+        ->assertOk();
+
+    $this->assertAuthenticated();
+});

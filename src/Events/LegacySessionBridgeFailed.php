@@ -16,9 +16,4 @@ final readonly class LegacySessionBridgeFailed
         public BridgeFailureReason $reason,
         public BridgeContext $context,
     ) {}
-
-    public static function failed(BridgeFailureReason $reason, BridgeContext $context): void
-    {
-        self::dispatch($reason, $context);
-    }
 }

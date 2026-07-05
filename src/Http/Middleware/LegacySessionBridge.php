@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Http\Middleware;
 
-use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
+use Chr15k\LegacyBridge\Cookie\CookieValueResolver;
 use Chr15k\LegacyBridge\Data\BridgeContext;
 use Chr15k\LegacyBridge\Enums\BridgeFailureReason;
 use Chr15k\LegacyBridge\Events\LegacySessionBridged;
@@ -16,6 +16,7 @@ use Chr15k\LegacyBridge\Exceptions\BridgeException;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
+use Chr15k\LegacyBridge\Support\Config;
 use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use Illuminate\Contracts\Auth\StatefulGuard;
@@ -31,6 +32,7 @@ final readonly class LegacySessionBridge
         private PayloadDecoder $decoder,
         private LegacyDatabaseSessionHandler $sessionHandler,
         private LegacyUserResolver $resolver,
+        private CookieValueResolver $cookieResolver,
         private ?LegacyContextResolver $contextResolver = null,
     ) {}
 
@@ -75,7 +77,7 @@ final readonly class LegacySessionBridge
             throw BridgeException::make(BridgeFailureReason::MissingCookie, $ctx);
         }
 
-        $sessionId = $this->sessionHandler->resolveSessionIdFromCookieValue($ctx->cookieValue)
+        $sessionId = $this->cookieResolver->resolve($ctx->cookieValue)
             ?? throw BridgeException::make(BridgeFailureReason::InvalidCookie, $ctx);
 
         $ctx = $ctx->withSessionId($sessionId);

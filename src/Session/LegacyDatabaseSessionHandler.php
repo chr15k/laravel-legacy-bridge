@@ -6,10 +6,10 @@ namespace Chr15k\LegacyBridge\Session;
 
 use Carbon\CarbonInterface;
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
-use Chr15k\LegacyBridge\Config;
 use Chr15k\LegacyBridge\Data\LegacySession;
 use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
+use Chr15k\LegacyBridge\Support\Config;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 
@@ -19,21 +19,6 @@ final readonly class LegacyDatabaseSessionHandler
 
     public function __construct(private Config $config) {}
 
-    public function resolveSessionIdFromCookieValue(string|array|null $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $encryption = app(Config::class)->cookieEncryption();
-
-        if ($encryption->isLaravel()) {
-            return $this->decryptCookieValue(payload: $value, unserialize: false);
-        }
-
-        return $value;
-    }
-
     public function fetch(string $sessionId, bool $includeExpired = false): ?LegacySession
     {
         $cols = $this->config->sessionColumns();
@@ -41,7 +26,7 @@ final readonly class LegacyDatabaseSessionHandler
         $semantics = $this->config->sessionTimeSemantics();
         $format = $this->config->sessionTimeFormat();
 
-        $threshold = $this->threshold();
+        $threshold = now()->subMinutes($this->config->lifetime());
 
         $query = DB::connection($this->config->connection())
             ->table($this->config->table())
@@ -86,11 +71,6 @@ final readonly class LegacyDatabaseSessionHandler
             ->delete();
 
         Cookie::queue(Cookie::forget($this->config->cookie()));
-    }
-
-    private function threshold(): CarbonInterface
-    {
-        return now()->subMinutes($this->config->lifetime());
     }
 
     private function resolveLastActivity(
