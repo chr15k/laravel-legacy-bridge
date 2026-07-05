@@ -1,11 +1,8 @@
-# Laravel Legacy Bridge — User Guide
+# laravel-legacy-bridge — User Guide
 
 This guide walks through a complete implementation of `laravel-legacy-bridge` for a real-world
 Strangler Fig migration. By the end you will have a working session bridge that authenticates
 users from your legacy application into your new Laravel app without forcing them to log in again.
-
-For a fast quickstart, see the [README](README.md). This guide covers every step in depth,
-including configuration choices, edge cases, and troubleshooting.
 
 ---
 
@@ -21,12 +18,10 @@ including configuration choices, edge cases, and troubleshooting.
 - [Step 6 — Verify the configuration](#step-6--verify-the-configuration)
 - [Payload format](#payload-format)
 - [Legacy Laravel applications](#legacy-laravel-applications)
-- [Symfony applications](#legacy-symfony-applications)
+- [Framework presets](#framework-presets)
 - [Carrying additional context](#carrying-additional-context)
 - [Invalidation strategies](#invalidation-strategies)
-- [Cookie alignment](#cookie-alignment)
-- [Shared database](#shared-database)
-- [Monitoring the migration](#monitoring-the-migration)
+- [Monitoring and events](#monitoring-and-events)
 - [Handling user eligibility](#handling-user-eligibility)
 - [Removing the bridge](#removing-the-bridge)
 - [Configuration reference](#configuration-reference)
@@ -41,7 +36,7 @@ You will need:
 - A Laravel 12 or 13 application (the new app)
 - A legacy PHP application (any framework, or plain PHP — including a legacy Laravel app)
 - Access to the legacy application's session database table
-- The legacy session cookie name (commonly `PHPSESSID`, or `laravel-session` if the legacy app is also Laravel)
+- The legacy session cookie name (commonly `PHPSESSID`, or `laravel_session` if the legacy app is also Laravel)
 
 You do **not** need to know your legacy payload structure in advance — the bundled `auto`
 resolver covers most common cases, and the `legacy-bridge:verify` command will help you confirm
@@ -56,14 +51,18 @@ composer require chr15k/laravel-legacy-bridge
 php artisan legacy-bridge:install
 ```
 
-The install command will:
+The install command walks you through setup interactively:
 
-- Publish `config/legacy-bridge.php`
-- Print the remaining setup steps
+- Asks whether both apps share a database
+- Collects legacy DB credentials and writes them to `.env`
+- Asks which legacy framework you're migrating from and pre-fills format and resolver settings
+- Asks whether you need a custom resolver, and publishes a stub if so
+- Publishes `config/legacy-bridge.php`
+- Prints the middleware registration snippet
 
 > [!NOTE]
-> Excluding the legacy cookie from Laravel's cookie encryption is handled automatically by the
-> package's service provider. You do not need to configure `EncryptCookies` yourself.
+> Excluding the legacy cookie from Laravel's `EncryptCookies` middleware is handled
+> automatically by the service provider. No `encryptCookies()` configuration is needed.
 
 ---
 
@@ -75,8 +74,6 @@ Add a `legacy` connection to `config/database.php`:
 
 ```php
 'connections' => [
-    // your existing connections...
-
     'legacy' => [
         'driver'   => 'mysql',
         'host'     => env('LEGACY_BRIDGE_DB_HOST', '127.0.0.1'),
@@ -90,7 +87,7 @@ Add a `legacy` connection to `config/database.php`:
 ],
 ```
 
-Then add the credentials to `.env`:
+Add credentials to `.env`:
 
 ```dotenv
 LEGACY_BRIDGE_DB_CONNECTION=legacy
@@ -104,8 +101,7 @@ LEGACY_BRIDGE_COOKIE=PHPSESSID
 
 ### Shared database
 
-If both applications use the same database, no new connection is needed. Point the bridge at
-your existing connection and specify the legacy sessions table name if it differs from `sessions`:
+If both applications use the same database, no new connection is needed:
 
 ```dotenv
 LEGACY_BRIDGE_DB_CONNECTION=mysql
@@ -116,15 +112,12 @@ LEGACY_BRIDGE_SESSION_TABLE=legacy_sessions
 
 ## Step 2 — Create the sessions table
 
-Your new Laravel application needs its own sessions table, separate from the legacy one. If
-you have not already created it:
+Your new Laravel application needs its own sessions table, separate from the legacy one:
 
 ```bash
 php artisan make:session-table
 php artisan migrate
 ```
-
-Then set the session driver in `.env`:
 
 ```dotenv
 SESSION_DRIVER=database
@@ -133,8 +126,6 @@ SESSION_DRIVER=database
 ---
 
 ## Step 3 — Register the middleware
-
-The bridge middleware must run on every web request, after Laravel's session has been started.
 
 In `bootstrap/app.php`:
 
@@ -147,42 +138,37 @@ In `bootstrap/app.php`:
 ```
 
 > [!NOTE]
-> Place the middleware **after** `StartSession` in the stack — appending it to the `web` group
-> as shown above already guarantees this ordering. Cookie encryption exclusion for the legacy
-> cookie is registered automatically by the package; no extra `encryptCookies()` configuration
-> is required.
+> Appending to the `web` group guarantees the bridge runs after `StartSession`. Cookie
+> encryption exclusion is registered automatically — no additional configuration required.
 
 ---
 
 ## Step 4 — Cookie naming
 
-If your legacy application is also a Laravel app and never customised its session cookie name,
-it is almost certainly using Laravel's default: `laravel-session`. Your new application's
-session cookie **must** use a different name to avoid a collision — the browser can only hold
-one cookie per name per domain, so if both apps used the same name, whichever response set it
-last would silently overwrite the other.
+If your legacy app is also Laravel and never customised its session cookie name, it uses
+Laravel's default: `laravel_session`. Your new application must use a different name to
+avoid a collision.
 
 ```dotenv
-# New application — choose a distinct name
+# New application
 SESSION_COOKIE=myapp_session
 
-# Legacy application cookie name (unchanged)
-LEGACY_BRIDGE_COOKIE=laravel-session
+# Legacy application cookie (unchanged)
+LEGACY_BRIDGE_COOKIE=laravel_session
 ```
 
-If your legacy app is plain PHP, its cookie is typically `PHPSESSID`, which does not conflict
-with Laravel's `laravel-session` default — no change needed.
+If your legacy app is plain PHP, its cookie is typically `PHPSESSID` — no conflict with
+Laravel's `laravel_session` default, no change needed.
 
-The `legacy-bridge:verify` command will warn you automatically if both cookies share the same name.
+The `legacy-bridge:verify` command warns you automatically if both cookies share the same name.
 
 ---
 
 ## Step 5 — Implement a resolver (optional)
 
 The resolver tells the bridge where the authenticated user ID lives in your legacy session
-payload. **Most consumers do not need to implement one** — the bundled `auto` driver already
-tries a sequence of known structures (plain PHP, nested arrays, Cartalyst Sentinel and Sentry,
-older Laravel auth session keys) and resolves the user ID automatically in most cases.
+payload. **Most consumers do not need to implement one** — the `auto` driver already tries
+a sequence of known structures and resolves the user ID in most cases.
 
 Only implement a custom resolver if:
 
@@ -190,8 +176,6 @@ Only implement a custom resolver if:
 - you want to lock down resolution to an explicit path before going to production (recommended)
 
 ### Using the built-in `key` driver
-
-If you know the exact dot-notation path to the user ID, you can skip writing any code:
 
 ```dotenv
 LEGACY_BRIDGE_RESOLVER_DRIVER=key
@@ -203,8 +187,6 @@ LEGACY_BRIDGE_RESOLVER_KEY=auth.user.id
 
 ### Writing a custom resolver
 
-For anything more involved, implement the `LegacyUserResolver` contract:
-
 ```php
 namespace App\Bridge;
 
@@ -213,38 +195,46 @@ use Chr15k\LegacyBridge\Contracts\LegacyUserResolver as Contract;
 
 class LegacyUserResolver implements Contract
 {
-    public function resolve(LegacyPayload $payload): ?int
+    public function resolve(LegacyPayload $payload): int|string|null
     {
         return $payload->resolveId('user_id');
     }
 }
 ```
 
-Then point the config at it:
+Update config:
 
 ```php
-// config/legacy-bridge.php
 'resolver' => [
     'driver' => 'custom',
     'class'  => \App\Bridge\LegacyUserResolver::class,
 ],
 ```
 
----
+### LegacyPayload API
 
-> [!IMPORTANT]
+```php
+$payload->get('user_id');              // top-level key
+$payload->get('auth.user.id');         // nested, dot notation
+$payload->get('missing', 'default');   // with fallback
+
+$payload->resolveId('user_id');        // safe ID resolution — handles scalar, array['id'], object->id
+$payload->has('cart_id');              // existence check (false if null)
+$payload->all();                       // all decoded keys as array
+$payload->only(['locale', 'timezone']); // subset
+$payload->format();                    // detected format string
+$payload->isEmpty();                   // true if no data
+```
+
+> [!WARNING]
 > **User ID mapping**
->
 > The resolved user ID is passed directly to `Auth::loginUsingId()` and looked up against
 > your new application's users table. The bridge assumes legacy user IDs and new user IDs
-> are the same value.
->
-> If your migration re-seeded users, imported them with new auto-increment IDs, or used
-> UUIDs in the new app where the legacy app used integers, you **must** handle the mapping
+> are the same value. If your migration re-seeded users with new IDs, handle the mapping
 > in a custom resolver:
 >
 > ```php
-> public function resolve(LegacyPayload $payload): ?int
+> public function resolve(LegacyPayload $payload): int|string|null
 > {
 >     $legacyId = $payload->resolveId('user_id');
 >
@@ -253,57 +243,6 @@ Then point the config at it:
 >         ->value('new_id');
 > }
 > ```
->
-> A missing mapping will cause `loginUsingId()` to return `false` silently — the user
-> lands on the guest flow with no error. If you see sessions being found but users not
-> being authenticated, an ID mismatch is the most likely cause.
-
----
-
-> [!NOTE]
-> **Symfony Custom Resolver**
->
-> Symfony does not store authentication state as a simple session key. Instead, it stores a serialized
-> security token (typically  under _security_<firewall>). Because this structure varies between Symfony
-> versions, firewalls, and authentication setups, LegacyBridge does not attempt to fully interpret
-> Symfony sessions by default.
->
-> Instead, Symfony support would need to be implemented through a `custom` resolver, allowing the application to
-> define how a user identity should be > extracted from the session payload.
-
----
-
-### Working with the LegacyPayload API
-
-The `LegacyPayload` object gives you safe, expressive access to the decoded session data.
-
-**Dot-notation access for nested structures:**
-
-```php
-// Legacy payload: ['auth' => ['user' => ['id' => 42]]]
-return $payload->resolveId('auth.user.id');
-```
-
-**Checking before accessing:**
-
-```php
-if ($payload->has('admin_user_id')) {
-    return $payload->resolveId('admin_user_id');
-}
-
-return $payload->resolveId('user_id');
-```
-
-**Handling serialized objects:**
-
-`resolveId()` handles the case where the value at a path is a serialized object with an `id`
-property — you don't need to unwrap it manually:
-
-```php
-// Legacy payload stores a User object at 'auth_user'
-// resolveId() reads ->id automatically
-return $payload->resolveId('auth_user');
-```
 
 **Common legacy structures:**
 
@@ -312,69 +251,64 @@ return $payload->resolveId('auth_user');
 | Plain PHP | `['user_id' => 42]` | `$payload->resolveId('user_id')` |
 | Nested array | `['auth' => ['id' => 42]]` | `$payload->resolveId('auth.id')` |
 | Serialized object | `['user' => User{id: 42}]` | `$payload->resolveId('user')` |
-| Cartalyst Sentinel | `['cartalyst_sentinel' => ...]` | `$payload->resolveId('cartalyst_sentinel.id')` |
+| Cartalyst Sentinel | `['cartalyst_sentinel' => [...]]` | `$payload->resolveId('cartalyst_sentinel.id')` |
 | Multiple guards | `['admin_id' => null, 'user_id' => 42]` | Check `has()` for each |
 
 ---
 
 ## Step 6 — Verify the configuration
 
-Before routing any real traffic through the bridge, run:
-
 ```bash
 php artisan legacy-bridge:verify
 ```
 
-This checks:
+Checks:
 
-- The config file is present and readable
-- The legacy database connection is reachable
-- The sessions table exists and has rows
-- The resolver is correctly configured
-- The cookie names do not collide
+- Config is present and readable
+- Legacy database connection is reachable
+- Sessions table exists and has rows
+- Resolver is correctly configured
+- Cookie names do not collide
 
 ### Testing a real session ID
-
-Find a session ID from your legacy sessions table and pass it to the verify command:
 
 ```bash
 php artisan legacy-bridge:verify --session-id=abc123def456
 ```
 
-The command shows exactly what the bridge would do with that session — format detected, payload
-keys found, user ID resolved, user existence confirmed — without actually authenticating anyone
-or modifying any data.
+Shows exactly what the bridge would do with that session — format detected, payload keys found,
+user ID resolved, user existence confirmed — without authenticating anyone or modifying data.
 
 Example output:
 
 ```
   laravel-legacy-bridge — configuration check
 
-┌─────────────────────────────────────────────────────┐
-│ Config                                              │
-│ file         config/legacy-bridge.php              │
-│ cookie       PHPSESSID                             │
-│ connection   legacy                                │
-│ table        sessions                              │
-│ format       auto                                  │
-│ invalidation after_write                           │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│ Config                                               │
+│ file         config/legacy-bridge.php               │
+│ cookie       PHPSESSID                              │
+│ connection   legacy                                 │
+│ table        sessions                               │
+│ format       auto                                   │
+│ invalidation after_write                            │
+└──────────────────────────────────────────────────────┘
 
   ✓ Connected to legacy.sessions (1,842 sessions)
   ✓ Resolver ready: auto
-  ✓ Cookie alignment OK: legacy=PHPSESSID  laravel=laravel-session
+  ✓ Cookie alignment OK: legacy=PHPSESSID  laravel=laravel_session
 
   Testing session ID: abc123def456…
 
-┌─────────────────────────────────────────────────────┐
-│ Session resolved                                    │
-│ session_id   abc123def456…                         │
-│ format       php_session                           │
-│ age          4m (lifetime: 120m)                   │
-│ keys         user_id, locale, _token               │
-│ user_id      42                                    │
-│ user_found   yes                                   │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│ Session resolved                                     │
+│ session_id   abc123def456…                          │
+│ format       php_session                            │
+│ age          4m (lifetime: 120m)                    │
+│ keys         user_id, locale, _token                │
+│ user_id      42                                     │
+│ user_found   yes                                    │
+└──────────────────────────────────────────────────────┘
 
   All checks passed.
 ```
@@ -383,77 +317,69 @@ Example output:
 
 ## Payload format
 
-The `format` setting tells the bridge how to decode the legacy session **payload** (the contents
-of the `payload` column). This is separate from cookie encryption, which is covered in
-[Legacy Laravel applications](#legacy-laravel-applications).
-
-### Supported formats
+The `format` setting describes how the **payload column** in the sessions table is encoded.
+This is separate from cookie encryption.
 
 | Format | Description |
 |---|---|
-| `auto` | Detects the format automatically (recommended starting point) |
+| `auto` | Detects automatically (recommended starting point) |
 | `php_session` | Native PHP session encoding (`key\|serialized;`) |
-| `json` | JSON-encoded payload, raw or base64-wrapped |
-| `laravel` | Laravel's `base64(serialize($array))` format — the default for most Laravel apps |
-| `encrypted` | Laravel session payload additionally encrypted via `SESSION_ENCRYPT=true` — requires `LEGACY_BRIDGE_APP_KEY` |
-
-If you are unsure which applies, leave `format` as `auto` and run the verify command against a
-real session ID — it will show you the detected format and decoded keys.
-
-Once confirmed, set it explicitly for production:
+| `json` | JSON-encoded, raw or base64-wrapped |
+| `laravel` | Laravel's `base64(serialize($array))` — the default for most Laravel apps |
+| `encrypted` | Laravel `SESSION_ENCRYPT=true` — requires `LEGACY_BRIDGE_APP_KEY` |
 
 ```dotenv
-LEGACY_BRIDGE_PAYLOAD_FORMAT=php_session   # Native PHP session encoding
-LEGACY_BRIDGE_PAYLOAD_FORMAT=laravel       # Laravel base64(serialize()) format
-LEGACY_BRIDGE_PAYLOAD_FORMAT=json          # JSON-encoded payload
-LEGACY_BRIDGE_PAYLOAD_FORMAT=encrypted     # Laravel SESSION_ENCRYPT=true (requires LEGACY_BRIDGE_APP_KEY)
+LEGACY_BRIDGE_PAYLOAD_FORMAT=laravel
 ```
 
-### LegacyPayload API reference
+### Column mapping
 
-Once decoded, the payload is wrapped in a `LegacyPayload` object with a consistent API
-regardless of the original format:
+If your legacy sessions table uses different column names, configure them:
 
-```php
-$payload->get('user_id');              // top-level key
-$payload->get('auth.user.id');         // nested key, dot notation
-$payload->get('missing', 'default');   // with fallback
+```dotenv
+LEGACY_BRIDGE_SESSION_TABLE_COL_ID=id
+LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD=payload
+LEGACY_BRIDGE_SESSION_TABLE_COL_TIME=last_activity
+```
 
-$payload->resolveId('user_id');        // safe ID — handles scalar, array['id'], object->id
-$payload->has('cart_id');              // existence check
-$payload->all();                       // all decoded keys as array
-$payload->only(['locale', 'timezone']); // subset of keys
-$payload->format();                    // detected format string
+### Time column semantics
+
+The `time` column can represent either the last activity time or a future expiry time:
+
+```dotenv
+# last_activity: session is valid if time > now() - lifetime (default)
+LEGACY_BRIDGE_SESSION_TIME_SEMANTICS=activity
+
+# expires: session is valid if time > now()
+LEGACY_BRIDGE_SESSION_TIME_SEMANTICS=expires
+```
+
+If the time column stores a datetime string rather than a Unix timestamp:
+
+```dotenv
+LEGACY_BRIDGE_SESSION_TIME_FORMAT=datetime
 ```
 
 ---
 
 ## Legacy Laravel applications
 
-If your legacy application is itself a Laravel app, there are two **independent** encryption
-layers to be aware of: the cookie value, and the session payload. Most legacy Laravel apps only
-have the cookie encrypted (Laravel's unavoidable default) while leaving the payload itself
-unencrypted.
+If your legacy application is itself a Laravel app, there are two independent encryption layers.
 
 ### Cookie encryption
 
-Laravel's `EncryptCookies` middleware encrypts all cookie values by default, including the
-session cookie. This means the raw cookie value sent by the browser is not the session ID — it
-is an encrypted blob that must be decrypted with the legacy app's `APP_KEY` before it can be
-used to look up a row in the sessions table.
-
-If your legacy app never excluded its session cookie from encryption (the default for most
-Laravel apps), set:
+Laravel's `EncryptCookies` middleware encrypts cookie values by default. This means the raw
+cookie value sent by the browser is not the session ID — it must be decrypted using the legacy
+app's `APP_KEY` before lookup.
 
 ```dotenv
 LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel
-LEGACY_BRIDGE_APP_KEY=base64:your_app_key_here
+LEGACY_BRIDGE_APP_KEY=base64:your_legacy_app_key_here
 ```
 
-`LEGACY_BRIDGE_APP_KEY` must be the `APP_KEY` value from the **legacy** application's own `.env` — not
-your new application's key.
+`LEGACY_BRIDGE_APP_KEY` must be the `APP_KEY` from the **legacy** application's `.env`.
 
-If the legacy app explicitly excluded its session cookie from encryption, set:
+If the legacy app excluded its session cookie from encryption:
 
 ```dotenv
 LEGACY_BRIDGE_COOKIE_ENCRYPTION=none
@@ -461,56 +387,103 @@ LEGACY_BRIDGE_COOKIE_ENCRYPTION=none
 
 ### Payload encryption
 
-Separately, the session **payload** stored in the database may or may not be encrypted,
-depending on whether the legacy app set `SESSION_ENCRYPT=true`. This is a less common setting —
-most Laravel apps leave it at its default of `false`.
+The session payload is only additionally encrypted if the legacy app set `SESSION_ENCRYPT=true`
+— uncommon, and separate from cookie encryption.
 
 ```dotenv
-# Most legacy Laravel apps — payload is plain base64(serialize())
+# Most legacy Laravel apps
 LEGACY_BRIDGE_PAYLOAD_FORMAT=laravel
 
-# Only if the legacy app explicitly set SESSION_ENCRYPT=true
+# Only if SESSION_ENCRYPT=true was set on the legacy app
 LEGACY_BRIDGE_PAYLOAD_FORMAT=encrypted
 ```
 
-Both `cookie_encryption: laravel` and `format: encrypted` use the same `LEGACY_BRIDGE_APP_KEY` — set
-it once and it is used wherever decryption is needed.
-
 ### Typical configuration for a legacy Laravel app
 
-The most common combination, covering a standard Laravel app with default settings:
-
 ```dotenv
+LEGACY_BRIDGE_COOKIE=laravel_session
 LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel
 LEGACY_BRIDGE_PAYLOAD_FORMAT=laravel
-LEGACY_BRIDGE_APP_KEY=base64:your_app_key_here
+LEGACY_BRIDGE_APP_KEY=base64:your_legacy_app_key_here
+
+# New app must use a different cookie name
+SESSION_COOKIE=myapp_session
 ```
 
-If you are unsure which combination applies, run the verify command against a real session ID —
-it will show you exactly where decoding succeeds or fails:
+---
 
-```bash
-php artisan legacy-bridge:verify --session-id=YOUR_SESSION_ID
+## Framework presets
+
+The install command pre-fills these settings automatically when you select a framework.
+If you're configuring manually, use these as a reference.
+
+### CodeIgniter 3
+
+CI3 stores sessions in `ci_sessions` with a `data` column:
+
+```dotenv
+LEGACY_BRIDGE_COOKIE=ci_session
+LEGACY_BRIDGE_SESSION_TABLE=ci_sessions
+LEGACY_BRIDGE_PAYLOAD_FORMAT=php_session
+LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD=data
+LEGACY_BRIDGE_SESSION_TABLE_COL_TIME=timestamp
+LEGACY_BRIDGE_SESSION_TIME_FORMAT=datetime
+```
+
+### CodeIgniter 4
+
+CI4 uses PHP's native session handler with a `ci_sessions` table:
+
+```dotenv
+LEGACY_BRIDGE_COOKIE=ci_session
+LEGACY_BRIDGE_SESSION_TABLE=ci_sessions
+LEGACY_BRIDGE_PAYLOAD_FORMAT=php_session
+LEGACY_BRIDGE_RESOLVER_DRIVER=key
+LEGACY_BRIDGE_RESOLVER_KEY=user.id
+LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD=data
+LEGACY_BRIDGE_SESSION_TABLE_COL_TIME=timestamp
+LEGACY_BRIDGE_SESSION_TIME_FORMAT=datetime
+```
+
+### Symfony
+
+Symfony uses PHP native sessions stored in `PHPSESSID`. The user is stored as a serialized
+security token, so a custom resolver is required:
+
+```dotenv
+LEGACY_BRIDGE_COOKIE=PHPSESSID
+LEGACY_BRIDGE_PAYLOAD_FORMAT=php_session
+LEGACY_BRIDGE_RESOLVER_DRIVER=custom
+```
+
+```php
+public function resolve(LegacyPayload $payload): int|string|null
+{
+    $token = $payload->get('_sf2_attributes._security_main');
+
+    if (! $token) {
+        return null;
+    }
+
+    $unserialized = @unserialize($token);
+
+    return $unserialized?->getUser()?->getId() ?? null;
+}
 ```
 
 ---
 
 ## Carrying additional context
 
-Beyond the authenticated user, you can carry other session values from the legacy payload
-into the new Laravel session. This is useful for locale, timezone, cart state, or any
-per-user context the legacy app maintained.
+Beyond the authenticated user, you can carry other session values into Laravel's session.
 
 ```php
 // config/legacy-bridge.php
 'context' => [
     'carry_keys' => ['locale', 'timezone', 'cart_id'],
-    'flash'      => true, // also carry legacy flash data
+    'flash'      => true, // carry legacy flash data
 ],
 ```
-
-Values listed in `carry_keys` are read from the legacy payload and written to Laravel's session
-on the first bridged request. They are then available via `session('locale')` etc. as normal.
 
 For full control, implement `LegacyContextResolver` and bind it in a service provider:
 
@@ -520,7 +493,7 @@ use Chr15k\LegacyBridge\Contracts\LegacyContextResolver;
 
 $this->app->singleton(LegacyContextResolver::class, function () {
     return new class implements LegacyContextResolver {
-        public function resolve(?int $userId, LegacyPayload $payload): array
+        public function resolve(int|string|null $userId, LegacyPayload $payload): array
         {
             return [
                 'locale'   => $payload->get('locale', 'en'),
@@ -538,79 +511,104 @@ $this->app->singleton(LegacyContextResolver::class, function () {
 | Strategy | Behaviour | When to use |
 |---|---|---|
 | `after_write` | Delete legacy session after Laravel writes its own | Production (default) |
-| `immediate` | Delete legacy session before next middleware | When legacy app must not see session again |
+| `immediate` | Delete legacy session before passing to next middleware | When legacy app must not see session again |
 | `never` | Leave legacy session intact | Debugging only |
 
 ```dotenv
 LEGACY_BRIDGE_INVALIDATION=after_write
 ```
 
-`after_write` is the recommended default. It ensures each legacy session can only be bridged
-once — after the user crosses over, the legacy session is gone and they hold a standard Laravel
-session.
-
-Avoid `never` in production. It leaves session rows in the legacy database indefinitely.
-
 ---
 
-## Cookie alignment
+## Monitoring and events
 
-Both cookies must be able to reach the browser simultaneously during the transition window.
-Keep the names distinct — see [Step 4 — Cookie naming](#step-4--cookie-naming) above.
+The bridge dispatches events instead of writing to logs. Listen to them in your application
+to implement monitoring, alerting, or custom logging.
 
-If both apps sit on different subdomains, set the session domain so both cookies are sent on
-cross-subdomain requests:
+### LegacySessionBridged
 
-```dotenv
-SESSION_DOMAIN=.yourdomain.com
+Dispatched on every successful bridge. Use this to track migration rate:
+
+```php
+use Chr15k\LegacyBridge\Events\LegacySessionBridged;
+
+class TrackMigrationProgress
+{
+    public function handle(LegacySessionBridged $event): void
+    {
+        // $event->userId, $event->sessionId, $event->payload
+        Metric::increment('legacy_bridge.success');
+    }
+}
 ```
 
----
+### LegacySessionBridgeFailed
 
-## Shared database
+Dispatched on every known failure. The `BridgeFailureReason` enum tells you exactly what went wrong:
 
-If both applications use the same database, set `LEGACY_BRIDGE_DB_CONNECTION` to your default
-connection and point `LEGACY_BRIDGE_SESSION_TABLE` at the legacy sessions table (if it differs from
-`sessions`):
+```php
+use Chr15k\LegacyBridge\Events\LegacySessionBridgeFailed;
+use Chr15k\LegacyBridge\Enums\BridgeFailureReason;
 
-```dotenv
-LEGACY_BRIDGE_DB_CONNECTION=mysql
-LEGACY_BRIDGE_SESSION_TABLE=legacy_sessions
+class HandleBridgeFailure
+{
+    public function handle(LegacySessionBridgeFailed $event): void
+    {
+        // $event->reason  — BridgeFailureReason enum
+        // $event->context — BridgeContext DTO
+
+        if ($event->reason === BridgeFailureReason::AuthenticationFailed) {
+            // User ID was found but doesn't exist in the new app
+            // Likely an ID mismatch — check user_id_map
+        }
+
+        Metric::increment('legacy_bridge.failure.'.$event->reason->value);
+    }
+}
 ```
 
-No second DB connection is needed.
+### LegacySessionBridgeError
 
----
+Dispatched on unexpected exceptions (DB connection failure, decoder error, etc.):
 
-## Monitoring the migration
+```php
+use Chr15k\LegacyBridge\Events\LegacySessionBridgeError;
 
-Enable logging to track bridge activity:
-
-```dotenv
-LEGACY_BRIDGE_LOGGING=true
-LEGACY_BRIDGE_LOG_CHANNEL=stack  # or any channel from config/logging.php
+class HandleBridgeError
+{
+    public function handle(LegacySessionBridgeError $event): void
+    {
+        // $event->exception — the Throwable
+        // Alert on this — it's unexpected
+        Notification::route('slack', config('services.slack.webhook'))
+            ->notify(new BridgeErrorAlert($event->exception));
+    }
+}
 ```
 
-Each successful bridge logs:
+Register listeners in your `EventServiceProvider` or `AppServiceProvider`:
 
-```
-legacy-bridge: session bridged {"user_id":42,"session_id":"abc123de…","format":"php_session"}
+```php
+use Illuminate\Support\Facades\Event;
+
+Event::listen(LegacySessionBridged::class, TrackMigrationProgress::class);
+Event::listen(LegacySessionBridgeFailed::class, HandleBridgeFailure::class);
+Event::listen(LegacySessionBridgeError::class, HandleBridgeError::class);
 ```
 
-Watch this log channel during rollout. As users cross over, the rate of bridge events will
-naturally decline. When `legacy-bridge: session bridged` stops appearing entirely, every active
-user has been migrated and the bridge is no longer doing any work.
+### Knowing when migration is complete
+
+Watch `LegacySessionBridged` event volume over time. As users cross over, the rate naturally
+declines. When it reaches zero, every active user has been migrated.
 
 ---
 
 ## Handling user eligibility
 
 The bridge calls `Auth::loginUsingId()` without checking whether the user is active, verified,
-or permitted to access the new application. Apply any such checks via Laravel's authentication
-events:
+or permitted to access the new application. Apply checks via Laravel's authentication events:
 
 ```php
-// app/Listeners/EnsureUserIsActive.php
 use Illuminate\Auth\Events\Login;
 
 class EnsureUserIsActive
@@ -625,111 +623,47 @@ class EnsureUserIsActive
 }
 ```
 
-Register it in `EventServiceProvider`:
-
-```php
-protected $listen = [
-    \Illuminate\Auth\Events\Login::class => [
-        \App\Listeners\EnsureUserIsActive::class,
-    ],
-];
-```
-
 ---
 
 ## Removing the bridge
 
-Once the legacy application is decommissioned or all active sessions have been migrated:
+Once migration is complete:
 
-1. Confirm `legacy-bridge: session bridged` has stopped appearing in your logs
+1. Confirm `LegacySessionBridged` events have stopped firing
 2. Remove the middleware from `bootstrap/app.php`
 3. Remove the legacy database connection from `config/database.php`
-4. Uninstall the package:
+4. Uninstall:
 
 ```bash
 composer remove chr15k/laravel-legacy-bridge
 ```
 
-The bridge is designed to leave nothing behind. Once removed, your application has no dependency
-on the legacy sessions table or any bridge infrastructure.
-
 ---
 
 ## Configuration reference
 
-```php
-// config/legacy-bridge.php
-
-return [
-
-    'cookie' => [
-        'name'       => env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'),
-        'encryption' => env('LEGACY_BRIDGE_COOKIE_ENCRYPTION', 'none'),
-    ],
-
-    'database' => [
-        'connection' => env('LEGACY_BRIDGE_DB_CONNECTION', 'legacy'),
-        'table'      => env('LEGACY_BRIDGE_SESSION_TABLE', 'sessions'),
-
-        'columns' => [
-            'id'                   => env('LEGACY_BRIDGE_SESSION_TABLE_COL_ID', 'id'),
-            'payload'              => env('LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD', 'payload'),
-            'last_activity'        => env('LEGACY_BRIDGE_SESSION_TABLE_COL_TIME', 'last_activity'),
-            'last_activity_format' => env('LEGACY_BRIDGE_SESSION_TABLE_TIME_FORMAT', 'timestamp'), // 'timestamp' | 'datetime'
-        ],
-    ],
-
-    'lifetime' => env('LEGACY_BRIDGE_LIFETIME', 120),
-
-    'payload' => [
-        'format' => env('LEGACY_BRIDGE_PAYLOAD_FORMAT', 'auto'),
-    ],
-
-    'app_key' => env('LEGACY_BRIDGE_APP_KEY'),
-
-    'resolver' => [
-        'driver' => env('LEGACY_BRIDGE_RESOLVER_DRIVER', 'auto'),
-        'key'    => env('LEGACY_BRIDGE_RESOLVER_KEY', 'user_id'),
-        'class'  => env('LEGACY_BRIDGE_RESOLVER_CLASS'),
-    ],
-
-    'context' => [
-        'carry_keys' => [],
-        'flash'      => false,
-    ],
-
-    'invalidation' => env('LEGACY_BRIDGE_INVALIDATION', 'after_write'),
-
-    'logging' => [
-        'enabled' => env('LEGACY_BRIDGE_LOGGING', true),
-        'channel' => env('LEGACY_BRIDGE_LOG_CHANNEL', null),
-    ],
-
-];
-
-```
-
 | Key | Default | Description |
-| --- | --- | --- |
-| `cookie.name` | `PHPSESSID` | Name of the legacy session cookie. |
-| `cookie.encryption` | `none` | Whether the cookie value itself is encrypted (`none` or `laravel`). |
-| `database.connection` | `legacy` | Database connection containing the legacy session table. |
-| `database.table` | `sessions` | Name of the legacy session table. |
-| `database.columns.id` | `id` | Column containing the session identifier. |
-| `database.columns.payload` | `payload` | Column containing the serialized session payload. |
-| `database.columns.time` | `last_activity` | Column used to determine whether a session has expired. |
-| `database.columns.time` | `timestamp` | Format of the `last_activity` column (`timestamp` or `datetime`). |
-| `lifetime` | `120` | Number of minutes a legacy session remains valid. |
-| `payload.format` | `auto` | Format of the stored session payload (`auto`, `laravel`, `php_session`, `json`, or `encrypted`). |
-| `app_key` | — | The legacy Laravel `APP_KEY`, used for cookie and/or payload decryption. |
-| `resolver.driver` | `auto` | Strategy used to resolve the authenticated user (`auto`, `key`, or `custom`). |
-| `resolver.key` | `user_id` | Dot-notation path used by the `key` resolver. |
-| `resolver.class` | — | Fully qualified class name of a custom resolver. |
-| `context.carry_keys` | `[]` | Additional session keys to copy into the new Laravel session. |
-| `context.flash` | `false` | Whether to carry legacy flash data. |
-| `invalidation` | `after_write` | When to invalidate the legacy session (`after_write`, `immediate`, or `never`). |
-| `logging.enabled` | `true` | Whether successful bridges are logged. |
-| `logging.channel` | — | Log channel to use (defaults to Laravel's default channel). |
+|---|---|---|
+| `cookie.name` | `PHPSESSID` | Name of the legacy session cookie |
+| `cookie.encryption` | `none` | Cookie decryption: `none` or `laravel` |
+| `database.connection` | `legacy` | DB connection name |
+| `database.table` | `sessions` | Legacy sessions table |
+| `database.columns.id` | `id` | Session ID column |
+| `database.columns.payload` | `payload` | Payload column |
+| `database.columns.time` | `last_activity` | Time column |
+| `database.time.semantics` | `activity` | `activity` or `expires` |
+| `database.time.format` | `timestamp` | `timestamp` or `datetime` |
+| `lifetime` | `120` | Minutes a session remains valid |
+| `payload.format` | `auto` | Payload encoding format |
+| `app_key` | — | Legacy app's `APP_KEY` for decryption |
+| `resolver.driver` | `auto` | `auto`, `key`, or `custom` |
+| `resolver.key` | `user_id` | Dot-notation path for `key` driver |
+| `resolver.class` | — | FQCN for `custom` driver |
+| `context.carry_keys` | `[]` | Additional session keys to carry |
+| `context.flash` | `false` | Whether to carry legacy flash data |
+| `invalidation` | `after_write` | Session deletion strategy |
+| `logging.enabled` | `true` | Whether to enable internal logging |
+| `logging.channel` | — | Log channel (null = default) |
 
 ---
 
@@ -739,35 +673,38 @@ return [
 
 1. Confirm the middleware is registered and in the `web` group
 2. Run `legacy-bridge:verify --session-id=YOUR_ID` to test a real session
-3. Check the log channel for `legacy-bridge:` entries
+3. Listen to `LegacySessionBridgeFailed` and check `$event->reason`
 4. Confirm `SESSION_DRIVER=database` and the new sessions table exists
 
-### Users are being logged out after bridging
+### MissingCookie events on every request
 
-The legacy session is being deleted (`after_write`) before Laravel has written its own. This
-can happen if the Laravel session write fails — check for session configuration errors,
-a missing sessions table, or an incorrect `SESSION_CONNECTION`.
+The legacy cookie isn't reaching the middleware. Check:
+- The cookie name in `LEGACY_BRIDGE_COOKIE` matches what the legacy app actually sets
+- The cookie domain covers both apps — set `SESSION_DOMAIN=.yourdomain.com` if needed
 
-### Cookie is arriving encrypted or garbled
+### SessionNotFound despite valid cookie
 
-If your legacy app is also Laravel, its session cookie is encrypted by default. Set
-`LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel` and `LEGACY_BRIDGE_APP_KEY` as described in
+Either the session has expired or the column names don't match your legacy table. Run the
+verify command with a real session ID and check the `keys` output.
+
+### AuthenticationFailed after user ID is resolved
+
+The user ID exists in the legacy payload but not in your new app's users table. The most
+likely cause is an ID mismatch from a data migration. Implement a custom resolver with an
+ID mapping table.
+
+### Cookie is arriving garbled (legacy Laravel app)
+
+Set `LEGACY_BRIDGE_COOKIE_ENCRYPTION=laravel` and `LEGACY_BRIDGE_APP_KEY`. See
 [Legacy Laravel applications](#legacy-laravel-applications).
 
-### Resolver returns null
+### Payload is invalid / PayloadDecodeFailed
 
-Run `legacy-bridge:verify --session-id=YOUR_ID` and check the `keys` field in the output.
-This shows every key present in the decoded payload. Set `resolver.key` to the correct path,
-or implement a custom resolver.
-
-### Format detection fails / payload is invalid
-
-Set `LEGACY_BRIDGE_PAYLOAD_FORMAT` explicitly rather than using `auto`. If your legacy app is also
-Laravel, check whether the actual issue is cookie encryption rather than payload format — the
-two are configured independently. See [Legacy Laravel applications](#legacy-laravel-applications).
+Set `LEGACY_BRIDGE_PAYLOAD_FORMAT` explicitly rather than relying on `auto`. If your legacy
+app is Laravel with default settings, use `laravel`. Only use `encrypted` if `SESSION_ENCRYPT=true`
+was explicitly set on the legacy app.
 
 ### Both cookies share the same name
 
-If your legacy app is also Laravel and never customised `SESSION_COOKIE`, it defaults to
-`laravel-session`. Set a distinct `SESSION_COOKIE` on the new application. See
-[Step 4 — Cookie naming](#step-4--cookie-naming).
+Your legacy app (also Laravel) uses `laravel_session` and so does your new app. Set a distinct
+`SESSION_COOKIE` on the new application. See [Step 4 — Cookie naming](#step-4--cookie-naming).
