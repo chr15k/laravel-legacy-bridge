@@ -29,10 +29,10 @@ final class PayloadDecoder
         return new LegacyPayload($data, $format);
     }
 
-    public function detect(string $raw): string
+    public function detect(string $raw): ?PayloadFormat
     {
         if (preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*\|/', $raw)) {
-            return 'php_session';
+            return PayloadFormat::PhpSession;
         }
 
         $decoded = base64_decode($raw, strict: true);
@@ -40,22 +40,22 @@ final class PayloadDecoder
         if ($decoded !== false) {
             $unserialized = @unserialize($decoded);
             if (is_array($unserialized)) {
-                return 'laravel';
+                return PayloadFormat::Laravel;
             }
 
             if (is_array(json_decode($decoded, true))) {
-                return 'json';
+                return PayloadFormat::Json;
             }
         }
 
         if (is_array(json_decode($raw, true))) {
-            return 'json';
+            return PayloadFormat::Json;
         }
 
         try {
-            return $this->decrypt(payload: $raw) ? 'encrypted' : 'unknown';
+            return $this->decrypt(payload: $raw) ? PayloadFormat::Encrypted : null;
         } catch (RuntimeException) {
-            return 'unknown';
+            return null;
         }
     }
 
