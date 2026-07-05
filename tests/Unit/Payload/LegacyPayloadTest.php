@@ -47,7 +47,7 @@ describe('LegacyPayload', function (): void {
     });
 
     it('returns all data', function (): void {
-        $data    = ['user_id' => 1, 'locale' => 'en'];
+        $data = ['user_id' => 1, 'locale' => 'en'];
         $payload = new LegacyPayload($data, PayloadFormat::Json);
         expect($payload->all())->toBe($data);
     });
@@ -69,9 +69,10 @@ describe('resolveId()', function (): void {
     });
 
     it('resolves an object with an id property', function (): void {
-        $user     = new stdClass();
+        $user = new stdClass;
         $user->id = 99;
-        $payload  = new LegacyPayload(['user' => $user], PayloadFormat::PhpSession);
+
+        $payload = new LegacyPayload(['user' => $user], PayloadFormat::PhpSession);
 
         expect($payload->resolveId('user'))->toBe(99);
     });

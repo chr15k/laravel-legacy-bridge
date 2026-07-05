@@ -32,7 +32,7 @@ describe('BridgeContext', function (): void {
     });
 
     it('withSessionId returns a new immutable instance', function (): void {
-        $ctx     = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
+        $ctx = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
         $updated = $ctx->withSessionId('session-123');
 
         expect($updated->sessionId)->toBe('session-123')
@@ -41,7 +41,7 @@ describe('BridgeContext', function (): void {
     });
 
     it('withPayload returns a new immutable instance', function (): void {
-        $ctx     = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
+        $ctx = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
         $payload = new LegacyPayload(['user_id' => 1], PayloadFormat::Json);
         $updated = $ctx->withPayload($payload);
 
@@ -51,7 +51,7 @@ describe('BridgeContext', function (): void {
     });
 
     it('withUserId returns a new immutable instance', function (): void {
-        $ctx     = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
+        $ctx = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
         $updated = $ctx->withUserId(42);
 
         expect($updated->userId)->toBe(42)

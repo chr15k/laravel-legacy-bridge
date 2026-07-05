@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Chr15k\LegacyBridge\Enums\BridgeFailureReason;
 use Chr15k\LegacyBridge\Enums\CookieEncryption;
 use Chr15k\LegacyBridge\Enums\InvalidationStrategy;
@@ -78,7 +79,7 @@ describe('SessionTimeFormat', function (): void {
 
     it('parses datetime from storage', function (): void {
         $carbon = SessionTimeFormat::Datetime->fromStorage('2024-01-01 00:00:00');
-        expect($carbon)->toBeInstanceOf(\Carbon\CarbonInterface::class);
+        expect($carbon)->toBeInstanceOf(CarbonInterface::class);
     });
 
     it('parses timestamp from storage', function (): void {

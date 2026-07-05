@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
+use Chr15k\LegacyBridge\Enums\BridgeFailureReason;
 use Chr15k\LegacyBridge\Enums\InvalidationStrategy;
+use Chr15k\LegacyBridge\Events\LegacySessionBridged;
 use Chr15k\LegacyBridge\Events\LegacySessionBridgeError;
 use Chr15k\LegacyBridge\Events\LegacySessionBridgeFailed;
-use Chr15k\LegacyBridge\Events\LegacySessionBridged;
-use Chr15k\LegacyBridge\Enums\BridgeFailureReason;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Workbench\App\Models\User;
 
 beforeEach(function (): void {
@@ -33,9 +34,7 @@ describe('authentication', function (): void {
 
         $this->assertAuthenticated();
 
-        Event::assertDispatched(LegacySessionBridged::class, function ($event) use ($user) {
-            return $event->userId === $user->id && $event->sessionId === 'test-session';
-        });
+        Event::assertDispatched(LegacySessionBridged::class, fn ($event): bool => $event->userId === $user->id && $event->sessionId === 'test-session');
     });
 
     it('authenticates the correct user from the legacy session', function (): void {
@@ -48,7 +47,7 @@ describe('authentication', function (): void {
             ->get('/protected')
             ->assertOk();
 
-        expect(\Illuminate\Support\Facades\Auth::id())->toBe($userB->id);
+        expect(Auth::id())->toBe($userB->id);
     });
 
     it('skips bridge when user is already authenticated', function (): void {
@@ -73,15 +72,15 @@ describe('authentication', function (): void {
             ->get('/protected')
             ->assertOk();
 
-        expect(\Illuminate\Support\Facades\Auth::id())->toBe($userA->id);
+        expect(Auth::id())->toBe($userA->id);
 
-        \Illuminate\Support\Facades\Auth::logout();
+        Auth::logout();
 
         $this->withUnencryptedCookies(['PHPSESSID' => 'session-b'])
             ->get('/protected')
             ->assertOk();
 
-        expect(\Illuminate\Support\Facades\Auth::id())->toBe($userB->id);
+        expect(Auth::id())->toBe($userB->id);
     });
 });
 
@@ -93,9 +92,7 @@ describe('failure events', function (): void {
     it('dispatches MissingCookie when no legacy cookie is present', function (): void {
         $this->get('/protected')->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::MissingCookie;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::MissingCookie);
 
         $this->assertGuest();
     });
@@ -105,9 +102,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::SessionNotFound;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::SessionNotFound);
 
         $this->assertGuest();
     });
@@ -124,9 +119,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::SessionNotFound;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::SessionNotFound);
 
         $this->assertGuest();
     });
@@ -142,9 +135,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::PayloadDecodeFailed;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::PayloadDecodeFailed);
     });
 
     it('dispatches UserNotResolved when payload has no user ID', function (): void {
@@ -154,9 +145,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::UserNotResolved;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::UserNotResolved);
     });
 
     it('dispatches AuthenticationFailed when user ID does not exist in users table', function (): void {
@@ -166,9 +155,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::AuthenticationFailed;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::AuthenticationFailed);
     });
 
     it('dispatches BridgeError on unexpected exception and does not break the request', function (): void {
@@ -185,10 +172,8 @@ describe('failure events', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'ghost-session'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->context->cookieName === 'PHPSESSID'
-                && $event->context->cookieValue === 'ghost-session';
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->context->cookieName === 'PHPSESSID'
+            && $event->context->cookieValue === 'ghost-session');
     });
 });
 
@@ -279,9 +264,7 @@ describe('payload formats', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->reason === BridgeFailureReason::PayloadDecodeFailed;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::PayloadDecodeFailed);
     });
 });
 
@@ -403,12 +386,10 @@ describe('bridge context', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'ghost'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return isset($event->context->requestContext['ip'])
-                && isset($event->context->requestContext['path'])
-                && isset($event->context->requestContext['method'])
-                && isset($event->context->requestContext['user_agent']);
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => isset($event->context->requestContext['ip'])
+            && isset($event->context->requestContext['path'])
+            && isset($event->context->requestContext['method'])
+            && isset($event->context->requestContext['user_agent']));
     });
 
     it('accumulates session id in context when session is found but user is not resolved', function (): void {
@@ -417,9 +398,7 @@ describe('bridge context', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->context->sessionId === 'test-session';
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->context->sessionId === 'test-session');
     });
 
     it('accumulates user id in context when auth fails', function (): void {
@@ -428,9 +407,7 @@ describe('bridge context', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, function ($event) {
-            return $event->context->userId === 99999;
-        });
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->context->userId === 99999);
     });
 });
 
