@@ -6,6 +6,8 @@ namespace Chr15k\LegacyBridge;
 
 use Chr15k\LegacyBridge\Contracts\LegacyUserResolver;
 use Chr15k\LegacyBridge\Enums\CookieEncryption;
+use Chr15k\LegacyBridge\Enums\InvalidationStrategy;
+use Chr15k\LegacyBridge\Enums\PayloadFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
 use Illuminate\Contracts\Config\Repository;
@@ -67,9 +69,10 @@ final readonly class Config
             ?? CookieEncryption::None;
     }
 
-    public function format(): ?string
+    public function format(): PayloadFormat
     {
-        return $this->string('legacy-bridge.payload.format', 'auto');
+        return PayloadFormat::tryFrom($this->string('legacy-bridge.payload.format'))
+            ?? PayloadFormat::Auto;
     }
 
     public function legacyAppKey(): ?string
@@ -77,9 +80,10 @@ final readonly class Config
         return $this->string('legacy-bridge.app_key');
     }
 
-    public function invalidation(): ?string
+    public function invalidation(): InvalidationStrategy
     {
-        return $this->string('legacy-bridge.invalidation', 'after_write');
+        return InvalidationStrategy::tryFrom($this->string('legacy-bridge.invalidation'))
+            ?? InvalidationStrategy::AfterWrite;
     }
 
     /**
@@ -128,11 +132,6 @@ final readonly class Config
     public function shouldDecryptLegacySession(): bool
     {
         return $this->format() === 'encrypted' && $this->legacyAppKey() !== null;
-    }
-
-    public function shouldInvalidateAfterWrite(): bool
-    {
-        return $this->invalidation() === 'after_write';
     }
 
     private function bool(string $key, ?bool $default = null): ?bool

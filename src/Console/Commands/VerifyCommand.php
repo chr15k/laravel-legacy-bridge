@@ -97,7 +97,7 @@ final class VerifyCommand extends Command
                     'connection'   => $this->config->connection(),
                     'table'        => $this->config->table(),
                     'format'       => $this->config->format(),
-                    'invalidation' => $this->config->invalidation(),
+                    'invalidation' => $this->config->invalidation()->value,
                 ]),
             ],
         );

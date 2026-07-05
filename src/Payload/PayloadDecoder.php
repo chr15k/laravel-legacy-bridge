@@ -5,24 +5,25 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Payload;
 
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
+use Chr15k\LegacyBridge\Enums\PayloadFormat;
 use RuntimeException;
 
 final class PayloadDecoder
 {
     use DecryptsLegacySessionData;
 
-    public function decode(string $raw, string $format = 'auto'): LegacyPayload
+    public function decode(string $raw, PayloadFormat $format): LegacyPayload
     {
-        if ($format === 'auto') {
+        if ($format === PayloadFormat::Auto) {
             $format = $this->detect($raw);
         }
 
         $data = match ($format) {
-            'php_session' => $this->decodePhpSession($raw),
-            'json'        => $this->decodeJson($raw),
-            'laravel'     => $this->decodeLaravel($raw),
-            'encrypted'   => $this->decrypt(payload: $raw),
-            default       => [],
+            PayloadFormat::PhpSession => $this->decodePhpSession($raw),
+            PayloadFormat::Json       => $this->decodeJson($raw),
+            PayloadFormat::Laravel    => $this->decodeLaravel($raw),
+            PayloadFormat::Encrypted  => $this->decrypt(payload: $raw),
+            default                   => [],
         };
 
         return new LegacyPayload($data, $format);

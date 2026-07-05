@@ -55,7 +55,7 @@ final readonly class LegacySessionBridge
 
         $response = $next($request);
 
-        if ($sessionId && $this->config->shouldInvalidateAfterWrite()) {
+        if ($sessionId && $this->config->invalidation()->isAfterWrite()) {
             $this->sessionHandler->invalidate($sessionId);
         }
 
@@ -105,7 +105,7 @@ final readonly class LegacySessionBridge
             payload: $payload,
         );
 
-        if ($this->config->invalidation() === 'immediate') {
+        if ($this->config->invalidation()->isImmediate()) {
             $this->sessionHandler->invalidate($sessionId);
         }
 

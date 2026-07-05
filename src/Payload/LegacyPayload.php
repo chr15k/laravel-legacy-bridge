@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Payload;
 
+use Chr15k\LegacyBridge\Enums\PayloadFormat;
 use Illuminate\Support\Arr;
 
 /**
@@ -18,7 +19,7 @@ final readonly class LegacyPayload
     /**
      * @param  array<mixed>  $data
      */
-    public function __construct(private array $data, private string $format) {}
+    public function __construct(private array $data, private PayloadFormat $format) {}
 
     /**
      * Get a value from the payload using dot-notation.
@@ -92,12 +93,10 @@ final readonly class LegacyPayload
 
     /**
      * Return the detected format of the original raw payload.
-     *
-     * One of: 'php_session', 'json', 'laravel', 'encrypted', 'unknown'
      */
     public function format(): string
     {
-        return $this->format;
+        return $this->format->value;
     }
 
     /**
