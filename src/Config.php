@@ -48,12 +48,14 @@ final readonly class Config
 
     public function sessionTimeSemantics(): SessionTimeSemantics
     {
-        return config('legacy-bridge.database.time.semantics');
+        return SessionTimeSemantics::tryFrom(config('legacy-bridge.database.time.semantics', 'activity'))
+            ?? SessionTimeSemantics::Activity;
     }
 
     public function sessionTimeFormat(): SessionTimeFormat
     {
-        return config('legacy-bridge.database.time.format');
+        return SessionTimeFormat::tryFrom(config('legacy-bridge.database.time.format', 'timestamp'))
+            ?? SessionTimeFormat::Timestamp;
     }
 
     public function lifetime(): int
@@ -65,13 +67,13 @@ final readonly class Config
 
     public function cookieEncryption(): CookieEncryption
     {
-        return CookieEncryption::tryFrom($this->string('legacy-bridge.cookie.encryption'))
+        return CookieEncryption::tryFrom($this->string('legacy-bridge.cookie.encryption', 'none'))
             ?? CookieEncryption::None;
     }
 
     public function format(): PayloadFormat
     {
-        return PayloadFormat::tryFrom($this->string('legacy-bridge.payload.format'))
+        return PayloadFormat::tryFrom($this->string('legacy-bridge.payload.format', 'auto'))
             ?? PayloadFormat::Auto;
     }
 
@@ -80,9 +82,9 @@ final readonly class Config
         return $this->string('legacy-bridge.app_key');
     }
 
-    public function invalidation(): InvalidationStrategy
+    public function invalidationStrategy(): InvalidationStrategy
     {
-        return InvalidationStrategy::tryFrom($this->string('legacy-bridge.invalidation'))
+        return InvalidationStrategy::tryFrom($this->string('legacy-bridge.invalidation_strategy', 'after_write'))
             ?? InvalidationStrategy::AfterWrite;
     }
 

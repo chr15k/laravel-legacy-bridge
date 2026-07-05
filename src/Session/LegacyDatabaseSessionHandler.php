@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Session;
 
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Config;
@@ -98,7 +97,7 @@ final readonly class LegacyDatabaseSessionHandler
         mixed $value,
         SessionTimeSemantics $semantics,
         SessionTimeFormat $format,
-    ): CarbonImmutable {
+    ): CarbonInterface {
         $carbon = $format->fromStorage($value);
 
         return match ($semantics) {

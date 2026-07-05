@@ -181,7 +181,7 @@ it('returns guest when payload is empty', function (): void {
 it('deletes the legacy session after a successful bridge when strategy is after_write', function (): void {
     $user = User::factory()->create();
 
-    config()->set('legacy-bridge.invalidation', 'after_write');
+    config()->set('legacy-bridge.invalidation_strategy', 'after_write');
 
     legacySession(['user_id' => $user->id]);
 
@@ -195,7 +195,7 @@ it('deletes the legacy session after a successful bridge when strategy is after_
 it('deletes the legacy session immediately when strategy is immediate', function (): void {
     $user = User::factory()->create();
 
-    config()->set('legacy-bridge.invalidation', 'immediate');
+    config()->set('legacy-bridge.invalidation_strategy', 'immediate');
 
     legacySession(['user_id' => $user->id]);
 
@@ -209,7 +209,7 @@ it('deletes the legacy session immediately when strategy is immediate', function
 it('preserves the legacy session when strategy is never', function (): void {
     $user = User::factory()->create();
 
-    config()->set('legacy-bridge.invalidation', 'never');
+    config()->set('legacy-bridge.invalidation_strategy', 'never');
 
     legacySession(['user_id' => $user->id]);
 

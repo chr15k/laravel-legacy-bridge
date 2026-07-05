@@ -96,8 +96,8 @@ final class VerifyCommand extends Command
                     'cookie'       => $this->config->cookie(),
                     'connection'   => $this->config->connection(),
                     'table'        => $this->config->table(),
-                    'format'       => $this->config->format(),
-                    'invalidation' => $this->config->invalidation()->value,
+                    'format'       => $this->config->format()->value,
+                    'invalidation' => $this->config->invalidationStrategy()->value,
                 ]),
             ],
         );

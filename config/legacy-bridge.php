@@ -1,8 +1,5 @@
 <?php
 
-use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
-use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
-
 return [
 
     'cookie' => [
@@ -76,10 +73,8 @@ return [
         ],
 
         'time' => [
-            'semantics' => SessionTimeSemantics::tryFrom(env('LEGACY_BRIDGE_SESSION_TIME_SEMANTICS'))
-                ?? SessionTimeSemantics::Activity,
-            'format' => SessionTimeFormat::tryFrom(env('LEGACY_BRIDGE_SESSION_TIME_FORMAT'))
-                ?? SessionTimeFormat::Timestamp,
+            'semantics' => env('LEGACY_BRIDGE_SESSION_TIME_SEMANTICS', 'activity'),
+            'format'    => env('LEGACY_BRIDGE_SESSION_TIME_FORMAT', 'timestamp'),
         ],
     ],
 
