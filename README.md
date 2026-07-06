@@ -12,27 +12,41 @@
 
 ------
 
-**Laravel Legacy Bridge** is a stateful context continuity solution for Laravel [Strangler Fig](https://martinfowler.com/bliki/StranglerFigApplication.html) migrations.
+**Laravel Legacy Bridge** provides session continuity between legacy PHP applications and Laravel.
 
-When you migrate a legacy PHP application to Laravel incrementally, your users are already authenticated in the old app. This package bridges their session, auth state, and any other context they carry into the new Laravel application transparently — on their first request, without forcing a re-login.
+Users authenticated in one application are seamlessly authenticated in the other, allowing both systems to coexist without interrupting the user experience.
+
+It is ideal for incremental Laravel migrations, framework upgrades, and any scenario where two applications need to share authenticated sessions.
 
 ---
 
 ## The problem
 
-The Strangler Fig pattern lets you migrate feature by feature while both apps run simultaneously. The hard part is the boundary: a user who logged in on the legacy app is not authenticated in Laravel. Without a bridge, they hit a login wall on their first request to any Laravel-handled route.
+Whenever two applications need to share users, authentication becomes the hardest part.
 
-**laravel-legacy-bridge** solves this by:
+A user may already have a perfectly valid authenticated session in your legacy application, but Laravel has no knowledge of it. Without a bridge, users encounter an unexpected login prompt as soon as they reach a Laravel-handled route.
+
+**Laravel Legacy Bridge** establishes session continuity by:
 
 - Reading the legacy session cookie on every unauthenticated request
-- Fetching and decoding the legacy session payload from the legacy database
-- Resolving the user ID using a configurable strategy
-- Calling `Auth::loginUsingId()` to authenticate them in Laravel
-- Dispatching typed events at every stage — success, known failure, and unexpected errors
-- Optionally carrying additional session context (locale, cart ID, flash data) across the boundary
+- Fetching and decoding the legacy session payload from the legacy session store
+- Resolving the authenticated user using a configurable strategy
+- Continuing the user's authenticated session in Laravel
+- Dispatching typed events for successful bridges, expected failures, and unexpected exceptions
+- Optionally carrying additional session context such as locale, cart ID, or other application data
 - Invalidating the legacy session after a successful bridge
 
-The bridge runs once per user. After their first request, they hold a standard Laravel session and the legacy database is never touched again for that user.
+The bridge runs only once per user. After Laravel establishes its own session, subsequent requests behave exactly like a normal Laravel application and the legacy session store is no longer consulted.
+
+---
+
+## Common use cases
+
+- Incremental Laravel migrations (Strangler Fig)
+- Replacing an admin panel while the public site remains legacy
+- Running Laravel alongside CodeIgniter, Symfony, or custom PHP
+- Sharing authentication during a framework migration
+- Gradually routing traffic from a legacy application into Laravel
 
 ---
 
@@ -227,10 +241,6 @@ return [
 
     'invalidation' => env('LEGACY_BRIDGE_INVALIDATION_STRATEGY', 'after_write'), // 'after_write' | 'immediate' | 'never'
 
-    'logging' => [
-        'enabled' => env('LEGACY_BRIDGE_LOGGING', true),
-        'channel' => env('LEGACY_BRIDGE_LOG_CHANNEL', null),
-    ],
 ];
 ```
 

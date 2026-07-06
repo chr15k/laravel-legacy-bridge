@@ -7,12 +7,12 @@ namespace Chr15k\LegacyBridge\Data;
 final readonly class LegacySession
 {
     public function __construct(
-        public string $id,
+        public string|int $id,
         public int|string|null $userId,
         public ?string $ipAddress,
         public ?string $userAgent,
         public string $payload,
-        public int $lastActivity,
+        public int|float|string $lastActivity,
         public bool $expired,
         public float $age
     ) {}

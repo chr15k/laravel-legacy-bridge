@@ -661,8 +661,6 @@ composer remove chr15k/laravel-legacy-bridge
 | `context.carry_keys` | `[]` | Additional session keys to carry |
 | `context.flash` | `false` | Whether to carry legacy flash data |
 | `invalidation` | `after_write` | Session deletion strategy |
-| `logging.enabled` | `true` | Whether to enable internal logging |
-| `logging.channel` | — | Log channel (null = default) |
 
 ---
 

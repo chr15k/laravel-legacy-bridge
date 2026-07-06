@@ -167,7 +167,7 @@ return [
         'key' => env('LEGACY_BRIDGE_RESOLVER_KEY', 'user_id'),
 
         // For driver "custom": the FQCN of your LegacyUserResolver implementation.
-        'class' => env('LEGACY_BRIDGE_RESOLVER_CLASS', 'App\Bridge\LegacyUserResolver'),
+        'class' => env('LEGACY_BRIDGE_RESOLVER_CLASS', null),
     ],
 
     /*
@@ -208,20 +208,5 @@ return [
     */
 
     'invalidation_strategy' => env('LEGACY_BRIDGE_INVALIDATION_STRATEGY', 'after_write'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Logging
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, each successful bridge is logged with the user ID and a
-    | truncated session ID. Useful during rollout to monitor migration rate.
-    |
-    */
-
-    'logging' => [
-        'enabled' => env('LEGACY_BRIDGE_LOGGING', true),
-        'channel' => env('LEGACY_BRIDGE_LOG_CHANNEL', null), // null = default channel
-    ],
 
 ];

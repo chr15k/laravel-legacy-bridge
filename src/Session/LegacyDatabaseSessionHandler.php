@@ -51,12 +51,19 @@ final readonly class LegacyDatabaseSessionHandler
         $rawTime = $row->{$cols['time']};
         $activity = $this->resolveLastActivity($rawTime, $semantics, $format);
 
+        if (! $activity instanceof CarbonInterface) {
+            return null;
+        }
+
         return new LegacySession(
-            id: $row->{$cols['id']},
-            userId: $row->user_id ?? null,
-            ipAddress: $row->ip_address ?? null,
-            userAgent: $row->user_agent ?? null,
-            payload: $row->{$cols['payload']},
+            id: (is_string($row->{$cols['id']}) || is_int($row->{$cols['id']}))
+                ? $row->{$cols['id']} : 0,
+            userId: isset($row->user_id)
+                && (is_string($row->user_id) || is_int($row->user_id))
+                ? $row->user_id : null,
+            ipAddress: isset($row->ip_address) && is_string($row->ip_address) ? $row->ip_address : null,
+            userAgent: isset($row->user_agent) && is_string($row->user_agent) ? $row->user_agent : null,
+            payload: is_string($row->{$cols['payload']}) ? $row->{$cols['payload']} : '',
             lastActivity: $activity->timestamp,
             expired: $activity->isBefore($threshold),
             age: now()->diffInMinutes($activity),
@@ -70,14 +77,21 @@ final readonly class LegacyDatabaseSessionHandler
             ->where($this->config->sessionColumns()['id'], $sessionId)
             ->delete();
 
-        Cookie::queue(Cookie::forget($this->config->cookie()));
+        if ($cookie = $this->config->cookie()) {
+            Cookie::queue(Cookie::forget($cookie));
+        }
     }
 
     private function resolveLastActivity(
         mixed $value,
         SessionTimeSemantics $semantics,
         SessionTimeFormat $format,
-    ): CarbonInterface {
+    ): ?CarbonInterface {
+
+        if (! is_string($value) && ! is_int($value)) {
+            return null;
+        }
+
         $carbon = $format->fromStorage($value);
 
         return match ($semantics) {

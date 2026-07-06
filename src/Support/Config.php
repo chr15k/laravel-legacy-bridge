@@ -24,17 +24,35 @@ final readonly class Config
 
     public function cookie(): ?string
     {
-        return $this->string('legacy-bridge.cookie.name', 'PHPSESSID');
+        $config = $this->config->get('legacy-bridge.cookie.name', 'PHPSESSID');
+
+        if (! is_string($config)) {
+            return null;
+        }
+
+        return $config;
     }
 
     public function connection(): string
     {
-        return $this->string('legacy-bridge.database.connection', 'legacy');
+        $config = $this->config->get('legacy-bridge.database.connection', 'legacy');
+
+        if (! is_string($config)) {
+            return 'legacy';
+        }
+
+        return $config;
     }
 
     public function table(): string
     {
-        return $this->string('legacy-bridge.database.table', 'sessions');
+        $config = $this->config->get('legacy-bridge.database.table', 'sessions');
+
+        if (! is_string($config)) {
+            return 'sessions';
+        }
+
+        return $config;
     }
 
     /**
@@ -42,20 +60,44 @@ final readonly class Config
      */
     public function sessionColumns(): array
     {
-        /** @var array{id: string, payload: string, time: string} */
-        return config('legacy-bridge.database.columns');
+        /** @var array{id: string, payload: string, time: string}|null */
+        $config = $this->config->get('legacy-bridge.database.columns');
+
+        if (! is_array($config)) {
+            return [
+                'id'      => 'id',
+                'payload' => 'payload',
+                'time'    => 'last_activity',
+            ];
+        }
+
+        return $config;
     }
 
     public function sessionTimeSemantics(): SessionTimeSemantics
     {
-        return SessionTimeSemantics::tryFrom(config('legacy-bridge.database.time.semantics', 'activity'))
-            ?? SessionTimeSemantics::Activity;
+        $default = SessionTimeSemantics::Activity;
+
+        $value = $this->config->get('legacy-bridge.database.time.semantics', $default->value);
+
+        if (! is_string($value)) {
+            return $default;
+        }
+
+        return SessionTimeSemantics::tryFrom($value) ?? $default;
     }
 
     public function sessionTimeFormat(): SessionTimeFormat
     {
-        return SessionTimeFormat::tryFrom(config('legacy-bridge.database.time.format', 'timestamp'))
-            ?? SessionTimeFormat::Timestamp;
+        $default = SessionTimeFormat::Timestamp;
+
+        $value = $this->config->get('legacy-bridge.database.time.format', $default->value);
+
+        if (! is_string($value)) {
+            return $default;
+        }
+
+        return SessionTimeFormat::tryFrom($value) ?? $default;
     }
 
     public function lifetime(): int
@@ -67,25 +109,52 @@ final readonly class Config
 
     public function cookieEncryption(): CookieEncryption
     {
-        return CookieEncryption::tryFrom($this->string('legacy-bridge.cookie.encryption', 'none'))
-            ?? CookieEncryption::None;
+        $default = CookieEncryption::None;
+
+        $value = $this->config->get('legacy-bridge.cookie.encryption', $default->value);
+
+        if (! is_string($value)) {
+            return $default;
+        }
+
+        return CookieEncryption::tryFrom($value) ?? $default;
     }
 
     public function format(): PayloadFormat
     {
-        return PayloadFormat::tryFrom($this->string('legacy-bridge.payload.format', 'auto'))
-            ?? PayloadFormat::Auto;
+        $default = PayloadFormat::Auto;
+
+        $value = $this->config->get('legacy-bridge.payload.format', $default->value);
+
+        if (! is_string($value)) {
+            return $default;
+        }
+
+        return PayloadFormat::tryFrom($value) ?? $default;
     }
 
     public function legacyAppKey(): ?string
     {
-        return $this->string('legacy-bridge.app_key');
+        $config = $this->config->get('legacy-bridge.app_key');
+
+        if (! is_string($config)) {
+            return null;
+        }
+
+        return $config;
     }
 
     public function invalidationStrategy(): InvalidationStrategy
     {
-        return InvalidationStrategy::tryFrom($this->string('legacy-bridge.invalidation_strategy', 'after_write'))
-            ?? InvalidationStrategy::AfterWrite;
+        $default = InvalidationStrategy::AfterWrite;
+
+        $value = $this->config->get('legacy-bridge.invalidation_strategy', $default->value);
+
+        if (! is_string($value)) {
+            return $default;
+        }
+
+        return InvalidationStrategy::tryFrom($value) ?? $default;
     }
 
     /**
@@ -97,8 +166,24 @@ final readonly class Config
      */
     public function resolver(): array
     {
-        /** @var array{driver: ?string, key: ?string, class: class-string<LegacyUserResolver>|null} */
-        return $this->config->get('legacy-bridge.resolver');
+        /**
+         * @var array{
+         *   driver: ?string,
+         *   key: ?string,
+         *   class: class-string<LegacyUserResolver>|null
+         * }|null $config
+         */
+        $config = $this->config->get('legacy-bridge.resolver');
+
+        if (! is_array($config)) {
+            return [
+                'driver' => 'auto',
+                'key'    => 'user_id',
+                'class'  => null,
+            ];
+        }
+
+        return $config;
     }
 
     /**
@@ -106,47 +191,24 @@ final readonly class Config
      */
     public function contextCarryKeys(): array
     {
-        /** @var list<string> */
-        return $this->config->get('legacy-bridge.context.carry_keys', []);
+        /** @var list<string>|null */
+        $config = $this->config->get('legacy-bridge.context.carry_keys', []);
+
+        if (! is_array($config)) {
+            return [];
+        }
+
+        return $config;
     }
 
-    public function contextFlash(): ?bool
+    public function contextFlash(): bool
     {
-        return $this->bool('legacy-bridge.context.flash', false);
-    }
+        $config = $this->config->get('legacy-bridge.context.flash', false);
 
-    public function loggingEnabled(): ?bool
-    {
-        return $this->bool('legacy-bridge.logging.enabled', true);
-    }
+        if (! is_bool($config)) {
+            return false;
+        }
 
-    public function loggingChannel(): ?string
-    {
-        return $this->string('legacy-bridge.logging.channel');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    public function shouldDecryptLegacySession(): bool
-    {
-        return $this->format() === 'encrypted' && $this->legacyAppKey() !== null;
-    }
-
-    private function bool(string $key, ?bool $default = null): ?bool
-    {
-        $value = $this->config->get($key, $default);
-
-        return is_bool($value) ? $value : $default;
-    }
-
-    private function string(string $key, ?string $default = null): ?string
-    {
-        $value = $this->config->get($key, $default);
-
-        return is_string($value) ? $value : $default;
+        return $config;
     }
 }
