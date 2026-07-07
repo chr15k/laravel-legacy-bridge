@@ -1,0 +1,103 @@
+name: "🐛 Bug Report"
+description: Report a bug with Laravel Legacy Bridge.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please provide as much information as possible so the issue can be reproduced.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Describe what happened.
+      placeholder: A clear and concise description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Include any relevant configuration or code required to reproduce the issue.
+      placeholder: |
+        1. Configure...
+        2. Visit...
+        3. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What did you expect to happen?
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant Configuration
+      description: |
+        Please include any relevant portions of your `legacy-bridge.php` configuration (remove secrets such as APP_KEYs).
+      render: php
+
+  - type: dropdown
+    id: legacy-framework
+    attributes:
+      label: Legacy Framework
+      description: Which application is Laravel bridging from?
+      options:
+        - Plain PHP
+        - Laravel
+        - CodeIgniter 3
+        - CodeIgniter 4
+        - Symfony
+        - CakePHP
+        - WordPress
+        - Other / Custom
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Laravel Legacy Bridge Version
+      placeholder: e.g. v1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: laravel-version
+    attributes:
+      label: Laravel Version
+      placeholder: e.g. 13.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      placeholder: e.g. 8.4.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Exception / Stack Trace
+      description: If applicable, paste the full exception or relevant log output.
+      render: text
+
+  - type: checkboxes
+    id: verification
+    attributes:
+      label: Verification
+      options:
+        - label: I have searched the existing issues before creating this report.
+          required: true
+        - label: I am using the latest stable release of Laravel Legacy Bridge.
+          required: true
