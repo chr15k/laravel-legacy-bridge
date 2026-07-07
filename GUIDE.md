@@ -679,6 +679,14 @@ The legacy cookie isn't reaching the middleware. Check:
 - The cookie name in `LEGACY_BRIDGE_COOKIE` matches what the legacy app actually sets
 - The cookie domain covers both apps — set `SESSION_DOMAIN=.yourdomain.com` if needed
 
+### AmbiguousCookie events
+
+The browser is sending multiple cookies with the same name, usually caused by overlapping
+cookie scopes — for example, one cookie set for `/` and another for a sub-path, or cookies
+set for both `.yourdomain.com` and `app.yourdomain.com`. Resolve it by ensuring the legacy
+app sets its session cookie with a consistent `domain` and `path`, and that any stale
+cookies from old deployments have been cleared.
+
 ### SessionNotFound despite valid cookie
 
 Either the session has expired or the column names don't match your legacy table. Run the

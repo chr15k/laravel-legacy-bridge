@@ -8,6 +8,10 @@ use Chr15k\LegacyBridge\Payload\LegacyPayload;
 
 final readonly class BridgeContext
 {
+    /**
+     * @param  array<string, string>  $requestContext
+     * @param  string|array<int, string>|null  $cookieValue
+     */
     public function __construct(
         public string $cookieName,
         public array $requestContext,

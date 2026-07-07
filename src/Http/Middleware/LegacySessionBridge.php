@@ -73,6 +73,10 @@ final readonly class LegacySessionBridge
     {
         $ctx = $this->initializeBridgeContext($request);
 
+        if (is_array($ctx->cookieValue)) {
+            throw BridgeException::make(BridgeFailureReason::AmbiguousCookie, $ctx);
+        }
+
         if (! is_string($ctx->cookieValue)) {
             throw BridgeException::make(BridgeFailureReason::MissingCookie, $ctx);
         }
@@ -123,6 +127,9 @@ final readonly class LegacySessionBridge
     {
         $cookie = $this->config->cookie();
 
+        /** @var string|array<int, string>|null $cookieValue */
+        $cookieValue = $request->cookie($cookie);
+
         return new BridgeContext(
             cookieName: $cookie,
             requestContext: [
@@ -131,7 +138,7 @@ final readonly class LegacySessionBridge
                 'user_agent' => $request->userAgent() ?? 'unknown',
                 'method'     => $request->method(),
             ],
-            cookieValue: $request->cookie($cookie),
+            cookieValue: $cookieValue,
         );
     }
 

@@ -8,6 +8,8 @@ enum BridgeFailureReason: string
 {
     case MissingCookie = 'missing_cookie';
 
+    case AmbiguousCookie = 'ambiguous_cookie';
+
     case InvalidCookie = 'invalid_cookie';
 
     case SessionNotFound = 'session_not_found';

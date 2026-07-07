@@ -20,7 +20,7 @@ enum SessionTimeFormat: string
         return $this === self::Timestamp;
     }
 
-    public function toStorage(CarbonInterface $carbon): int|string
+    public function toStorage(CarbonInterface $carbon): float|int|string
     {
         return match ($this) {
             self::Datetime  => $carbon->toDateTimeString(),

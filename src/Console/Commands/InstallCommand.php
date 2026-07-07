@@ -38,6 +38,7 @@ final class InstallCommand extends Command
             ? $this->collectSharedDbEnv()
             : $this->collectSeparateDbEnv();
 
+        /** @var string $preset */
         $preset = select(
             label: 'Which legacy framework are you migrating from?',
             options: [
@@ -111,7 +112,7 @@ final class InstallCommand extends Command
         return [
             'LEGACY_BRIDGE_DB_CONNECTION' => text(
                 label: 'DB connection name',
-                default: config('database.default', 'mysql'),
+                default: is_string($default = config('database.default', 'mysql')) ? $default : 'mysql',
                 hint: 'Must match an existing connection in config/database.php',
             ),
             'LEGACY_BRIDGE_SESSION_TABLE' => text(
@@ -197,12 +198,17 @@ final class InstallCommand extends Command
 
         $env = file_get_contents($envPath);
 
+        if ($env === false) {
+            return;
+        }
+
         foreach ($values as $key => $value) {
             $line = sprintf('%s=%s', $key, $value);
 
             if (preg_match(sprintf('/^%s=/m', $key), $env)) {
                 // Update existing key
-                $env = preg_replace(sprintf('/^%s=.*/m', $key), $line, $env);
+                $replaced = preg_replace(sprintf('/^%s=.*/m', $key), $line, $env);
+                $env = $replaced ?? $env;
             } else {
                 // Append new key
                 $env .= PHP_EOL.$line;

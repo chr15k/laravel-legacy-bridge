@@ -20,7 +20,7 @@ final class PayloadDecoder
             PayloadFormat::PhpSession => $this->decodePhpSession($raw),
             PayloadFormat::Json       => $this->decodeJson($raw),
             PayloadFormat::Laravel    => $this->decodeLaravel($raw),
-            PayloadFormat::Encrypted  => $this->decrypt(payload: $raw),
+            PayloadFormat::Encrypted  => $this->decodeEncrypted($raw),
             default                   => [],
         };
 
@@ -55,6 +55,27 @@ final class PayloadDecoder
         } catch (RuntimeException) {
             return null;
         }
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function decodeEncrypted(string $raw): array
+    {
+        $decrypted = $this->decrypt(payload: $raw);
+
+        if ($decrypted === null) {
+            return [];
+        }
+
+        $format = $this->detect($decrypted) ?? PayloadFormat::PhpSession;
+
+        return match ($format) {
+            PayloadFormat::PhpSession => $this->decodePhpSession($decrypted),
+            PayloadFormat::Json       => $this->decodeJson($decrypted),
+            PayloadFormat::Laravel    => $this->decodeLaravel($decrypted),
+            default                   => [],
+        };
     }
 
     /**
@@ -126,11 +147,9 @@ final class PayloadDecoder
             return [];
         }
 
-        if (json_validate($decoded)) {
-            return json_decode($decoded, true) ?: [];
-        }
-
-        $data = unserialize($decoded, ['allowed_classes' => false]);
+        $data = (json_validate($decoded))
+            ? json_decode($decoded, true)
+            : @unserialize($decoded);
 
         return is_array($data) ? $data : [];
     }

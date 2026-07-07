@@ -22,12 +22,12 @@ final readonly class Config
     |--------------------------------------------------------------------------
     */
 
-    public function cookie(): ?string
+    public function cookie(): string
     {
         $config = $this->config->get('legacy-bridge.cookie.name', 'PHPSESSID');
 
         if (! is_string($config)) {
-            return null;
+            return 'PHPSESSID';
         }
 
         return $config;

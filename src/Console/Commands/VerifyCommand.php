@@ -82,12 +82,6 @@ final class VerifyCommand extends Command
 
     private function checkConfig(): bool
     {
-        if (! $this->config) {
-            error('Config not found. Run: php artisan legacy-bridge:install');
-
-            return false;
-        }
-
         callout(
             label: 'Config',
             content: [

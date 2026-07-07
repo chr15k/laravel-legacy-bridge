@@ -124,6 +124,7 @@ LegacySessionBridgeError::class
 | Reason | Description |
 |---|---|
 | `MissingCookie` | No legacy session cookie was present on the request |
+| `AmbiguousCookie` | Multiple cookies share the same name (overlapping path/domain scope) |
 | `InvalidCookie` | Cookie value could not be resolved to a session ID |
 | `SessionNotFound` | No matching session row found (or expired) |
 | `SessionExpired` | Session exists but is beyond the configured lifetime |
