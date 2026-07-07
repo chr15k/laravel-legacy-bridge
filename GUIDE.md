@@ -33,7 +33,7 @@ users from your legacy application into your new Laravel app without forcing the
 
 You will need:
 
-- A Laravel 12 or 13 application (the new app)
+- A Laravel 13 application (the new app)
 - A legacy PHP application (any framework, or plain PHP — including a legacy Laravel app)
 - Access to the legacy application's session database table
 - The legacy session cookie name (commonly `PHPSESSID`, or `laravel_session` if the legacy app is also Laravel)

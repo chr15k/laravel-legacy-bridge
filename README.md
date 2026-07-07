@@ -55,7 +55,7 @@ The bridge runs only once per user. After Laravel establishes its own session, s
 ## Requirements
 
 - PHP 8.3+
-- Laravel 12 or 13
+- Laravel 13
 
 ---
 
