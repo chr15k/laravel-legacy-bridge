@@ -1,6 +1,6 @@
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="art/header-dark.jpeg">
-    <img alt="Logo for Laravel Legacy Bridge package" src="art/header-light.jpeg">
+    <source media="(prefers-color-scheme: dark)" srcset="art/header-dark.webp">
+    <img alt="Logo for Laravel Legacy Bridge package" src="art/header-light.webp">
 </picture>
 
 <p></p>
