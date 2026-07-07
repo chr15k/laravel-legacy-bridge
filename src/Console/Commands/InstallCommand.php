@@ -130,7 +130,7 @@ final class InstallCommand extends Command
     {
         return match ($preset) {
             'laravel' => [
-                'LEGACY_BRIDGE_COOKIE'            => 'laravel-session',
+                'LEGACY_BRIDGE_COOKIE'            => 'laravel_session',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'    => 'laravel',
                 'LEGACY_BRIDGE_COOKIE_ENCRYPTION' => 'laravel',
                 'LEGACY_BRIDGE_APP_KEY'           => text(

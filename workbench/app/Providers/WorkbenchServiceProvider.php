@@ -2,10 +2,14 @@
 
 namespace Workbench\App\Providers;
 
+use Chr15k\LegacyBridge\Events\LegacySessionBridged;
+use Chr15k\LegacyBridge\Events\LegacySessionBridgeFailed;
 use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
-use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Workbench\App\Listeners\LogSessionBridgeFailure;
+use Workbench\App\Listeners\LogSessionBridgeSuccess;
 
 final class WorkbenchServiceProvider extends ServiceProvider
 {
@@ -22,9 +26,15 @@ final class WorkbenchServiceProvider extends ServiceProvider
      */
     public function boot(Router $router): void
     {
-        $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware) {
-            $middleware->disableFor(env('LEGACY_BRIDGE_COOKIE', 'PHPSESSID'));
-        });
-        $router->prependMiddlewareToGroup('web', LegacySessionBridge::class);
+        $router->pushMiddlewareToGroup('web', LegacySessionBridge::class);
+
+        Event::listen(
+            LegacySessionBridged::class,
+            LogSessionBridgeSuccess::class
+        );
+        Event::listen(
+            LegacySessionBridgeFailed::class,
+            LogSessionBridgeFailure::class
+        );
     }
 }

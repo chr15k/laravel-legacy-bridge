@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Data;
 
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
+use Illuminate\Contracts\Support\Arrayable;
 
-final readonly class BridgeContext
+/**
+ * @implements Arrayable<string, mixed>
+ */
+final readonly class BridgeContext implements Arrayable
 {
     /**
      * @param  array<string, string>  $requestContext
@@ -55,5 +59,17 @@ final readonly class BridgeContext
             payload: $this->payload,
             userId: $userId,
         );
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'cookie_name'     => $this->cookieName,
+            'request_context' => $this->requestContext,
+            'cookie_value'    => $this->cookieValue,
+            'session_id'      => $this->sessionId,
+            'payload'         => $this->payload?->all(),
+            'user_id'         => $this->userId,
+        ];
     }
 }

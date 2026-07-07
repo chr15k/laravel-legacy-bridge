@@ -14,9 +14,13 @@ seeders:
 
 env:
   SESSION_DRIVER: database
+  DB_CONNECTION: mysql
+  DB_DATABASE: workbench
+  DB_USERNAME: root
+  DB_PASSWORD: password
   LEGACY_BRIDGE_APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
   APP_KEY: AckfSECXIvnK5r28GVIWUAxmbBSjTsmF
-  LEGACY_BRIDGE_DB_CONNECTION: sqlite
+  LEGACY_BRIDGE_DB_CONNECTION: mysql
   LEGACY_BRIDGE_SESSION_TABLE: legacy_sessions
   LEGACY_BRIDGE_COOKIE: legacy-test-session
 

@@ -1,14 +1,33 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Workbench\App\Models\User;
 
-Route::get('/', function () {
+Route::get('/config', function () {
     dump(config('legacy-bridge'));
-    // dump(Cookie::get('legacy-test-session'));
 });
 
-Route::get('create-legacy-cookie', function () {
+Route::get('/clear-session', function () {
+    Auth::logout();
+
+    Cookie::queue(Cookie::forget('legacy-test-session'));
+
+    DB::table('legacy_sessions')->where('id', 'legacy-test-session')->delete();
+
+    return redirect('/protected');
+});
+
+Route::get('/create-legacy-session', function () {
+
+    DB::table('legacy_sessions')->insertOrIgnore([
+        'id'            => 'legacy-test-session',
+        'payload'       => base64_encode(serialize(['user_id' => User::query()->value('id')])),
+        'last_activity' => now()->timestamp,
+    ]);
+
     Cookie::queue(
         'legacy-test-session',
         'legacy-test-session',
@@ -20,13 +39,9 @@ Route::get('create-legacy-cookie', function () {
         false,
         config('session.same_site') ?? null
     );
+
+    return redirect('/protected');
 });
 
 Route::get('/login', fn () => 'login')->name('login');
-Route::get('/protected', fn () => 'ok')->middleware('auth');
-
-// Route::get('/create-session', function () {
-//     Auth::login(User::first());
-
-//     return 'Session created: '.session()->getId();
-// });
+Route::get('/protected', fn () => Auth::guard()->check() ? 'Logged in!' : 'Not logged in...')->middleware('auth');
