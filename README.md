@@ -65,16 +65,14 @@ It does not:
 
 ---
 
-Here's a constraints section suitable for the README or GUIDE:
-
----
-
 ## Initial release constraints
 
 - Database sessions only — file, Redis, and Memcached session drivers are not supported
 - Web requests only — stateless/API bridging is not supported
 - Default auth guard only — bridging into a named guard is not supported in this release
 - Laravel 13 / PHP 8.3+
+
+See more information on this [here](GUIDE.md#known-limitations)
 
 ---
 
@@ -221,6 +219,7 @@ Full setup, configuration, and troubleshooting: **[User Guide](GUIDE.md)**
 - [Monitoring and events](GUIDE.md#monitoring-and-events)
 - [Removing the bridge](GUIDE.md#removing-the-bridge)
 - [Troubleshooting](GUIDE.md#troubleshooting)
+- [Known Limitations](GUIDE.md#known-limitations)
 
 ---
 
