@@ -141,6 +141,7 @@ final class VerifyCommand extends Command
     {
         $legacyCookie = $this->config->cookie();
         $laravelCookie = config('session.cookie');
+
         if (! is_string($laravelCookie)) {
             error('Laravel session cookie not configured - check config("session.cookie")');
 

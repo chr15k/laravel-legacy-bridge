@@ -76,6 +76,7 @@ final readonly class LegacyDatabaseSessionHandler
             ->table($this->config->table())
             ->where($this->config->sessionColumns()['id'], $sessionId)
             ->delete();
+
         $cookie = $this->config->cookie();
 
         if ($cookie !== '' && $cookie !== '0') {
