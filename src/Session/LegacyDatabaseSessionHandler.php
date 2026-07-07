@@ -21,6 +21,10 @@ final readonly class LegacyDatabaseSessionHandler
 
     public function fetch(string $sessionId, bool $includeExpired = false): ?LegacySession
     {
+        if (! $this->isValidSessionId($sessionId)) {
+            return null;
+        }
+
         $cols = $this->config->sessionColumns();
 
         $semantics = $this->config->sessionTimeSemantics();
@@ -82,6 +86,15 @@ final readonly class LegacyDatabaseSessionHandler
         if ($cookie !== '' && $cookie !== '0') {
             Cookie::queue(Cookie::forget($cookie));
         }
+    }
+
+    /**
+     * Reject if unreasonably long or empty, but do not prescribe a
+     * specific format, as legacy systems may have different requirements.
+     */
+    private function isValidSessionId(string $sessionId): bool
+    {
+        return mb_strlen($sessionId) >= 1 && mb_strlen($sessionId) <= 256;
     }
 
     private function resolveLastActivity(

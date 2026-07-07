@@ -21,7 +21,7 @@ final readonly class KeyResolver implements LegacyUserResolver
         private string $key = 'user_id',
     ) {}
 
-    public function resolve(LegacyPayload $payload): ?int
+    public function resolve(LegacyPayload $payload): int|string|null
     {
         return $payload->resolveId($this->key);
     }

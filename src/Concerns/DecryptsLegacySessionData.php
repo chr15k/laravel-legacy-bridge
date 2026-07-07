@@ -20,12 +20,18 @@ trait DecryptsLegacySessionData
         }
 
         $keyBytes = Str::startsWith($key, 'base64:')
-            ? base64_decode(Str::after($key, 'base64:'))
+            ? base64_decode(Str::after($key, 'base64:'), strict: true)
             : $key;
 
-        $cipher = Encrypter::supported($keyBytes, 'AES-256-CBC')
-            ? 'AES-256-CBC'
-            : 'AES-128-CBC';
+        if ($keyBytes === false) {
+            throw new MissingLegacyAppKeyException('Legacy app key contains invalid base64.');
+        }
+
+        if (! Encrypter::supported($keyBytes, 'AES-256-CBC') && ! Encrypter::supported($keyBytes, 'AES-128-CBC')) {
+            throw new MissingLegacyAppKeyException('Legacy app key length does not match AES-128-CBC or AES-256-CBC.');
+        }
+
+        $cipher = Encrypter::supported($keyBytes, 'AES-256-CBC') ? 'AES-256-CBC' : 'AES-128-CBC';
 
         $encrypter = new Encrypter($keyBytes, $cipher);
 

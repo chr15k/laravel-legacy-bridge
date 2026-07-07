@@ -45,7 +45,7 @@ final class AutoResolver implements LegacyUserResolver
         'logged_in_user_id',
     ];
 
-    public function resolve(LegacyPayload $payload): ?int
+    public function resolve(LegacyPayload $payload): int|string|null
     {
         // Special-case: Laravel login_{guard}_{hash} keys — scan the
         // top-level array for any key that looks like a login key and

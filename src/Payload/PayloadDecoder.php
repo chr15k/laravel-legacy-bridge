@@ -6,6 +6,7 @@ namespace Chr15k\LegacyBridge\Payload;
 
 use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Enums\PayloadFormat;
+use Chr15k\LegacyBridge\Support\Config;
 use RuntimeException;
 
 final class PayloadDecoder
@@ -36,7 +37,8 @@ final class PayloadDecoder
         $decoded = base64_decode($raw, strict: true);
 
         if ($decoded !== false) {
-            $unserialized = @unserialize($decoded);
+            $unserialized = @unserialize($decoded, ['allowed_classes' => false]);
+
             if (is_array($unserialized)) {
                 return PayloadFormat::Laravel;
             }
@@ -48,6 +50,10 @@ final class PayloadDecoder
 
         if (is_array(json_decode($raw, true))) {
             return PayloadFormat::Json;
+        }
+
+        if (! app(Config::class)->legacyAppKey()) {
+            return null;
         }
 
         try {
@@ -107,7 +113,7 @@ final class PayloadDecoder
                 continue;
             }
 
-            $value = @unserialize($segment);
+            $value = @unserialize($segment, ['allowed_classes' => false]);
 
             if ($value !== false) {
                 $vars[$segments[$i]] = $value;
@@ -149,7 +155,7 @@ final class PayloadDecoder
 
         $data = (json_validate($decoded))
             ? json_decode($decoded, true)
-            : @unserialize($decoded);
+            : @unserialize($decoded, ['allowed_classes' => false]);
 
         return is_array($data) ? $data : [];
     }

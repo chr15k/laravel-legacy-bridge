@@ -51,7 +51,7 @@ final readonly class LegacyPayload
      *   $payload->resolveId('auth.user.id')               // nested scalar
      *   $payload->resolveId('cartalyst.sentinel')         // object/array with id
      */
-    public function resolveId(string $path): ?int
+    public function resolveId(string $path): int|string|null
     {
         $value = $this->get($path);
 
@@ -62,11 +62,7 @@ final readonly class LegacyPayload
             default                             => null,
         };
 
-        if (! is_int($scalar) && ! is_string($scalar)) {
-            return null;
-        }
-
-        return (int) $scalar ?: null;
+        return (is_int($scalar) || is_string($scalar)) ? $scalar : null;
     }
 
     /**

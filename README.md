@@ -263,6 +263,26 @@ The legacy cookie is excluded from Laravel's `EncryptCookies` middleware by desi
 
 Laravel's own session handler encrypts and signs the session payload using `APP_KEY`. Legacy payloads have no equivalent — they are trusted by virtue of the session ID matching a row in the legacy DB, which is trusted by virtue of the cookie. Keep `carry_keys` to the minimum necessary and treat everything else in the legacy payload as untrusted input.
 
+### Deserialization and the legacy database as a trust boundary
+
+The bridge deserializes data read directly from the legacy sessions table. This means **the legacy database is a trust boundary** — a compromised or tampered database could contain payloads crafted to exploit PHP's `unserialize()`. Ensure your legacy database credentials are restricted to read-only access where possible, and apply the same access controls you would for any application database.
+
+### Key rotation
+
+When `LEGACY_BRIDGE_APP_KEY` is rotated on the legacy application, any session cookies issued before the rotation cannot be decrypted by the bridge. Users with in-flight sessions will receive an `InvalidCookie` or `LegacySessionBridgeError` event and will need to re-authenticate on the legacy application first. Coordinate key rotation with a maintenance window or ensure users are notified, and update `LEGACY_BRIDGE_APP_KEY` in the new application at the same time as the legacy `APP_KEY` is changed.
+
+### Rate limiting
+
+Each unauthenticated request that carries a legacy session cookie triggers a query against the legacy database. Apply rate limiting to your bridged routes to prevent excessive DB load from repeated unauthenticated requests:
+
+```php
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->throttleApi(); // or a custom limiter
+})
+```
+
+Or apply a named limiter specifically to web routes handled by the bridge via `RateLimiter::for()` in a service provider.
+
 ### Invalidation
 
 The default `after_write` strategy deletes the legacy session after Laravel writes its own, meaning each legacy session can only be bridged once. Avoid `never` in production.

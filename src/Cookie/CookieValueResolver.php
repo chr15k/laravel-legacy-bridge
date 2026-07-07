@@ -25,6 +25,12 @@ final readonly class CookieValueResolver
     {
         $decrypted = $this->decrypt($cookieValue, unserialize: false);
 
-        return $decrypted === null ? null : CookieValuePrefix::remove($decrypted);
+        $result = $decrypted === null ? null : CookieValuePrefix::remove($decrypted);
+
+        if ($result === null || $result === '') {
+            return null;
+        }
+
+        return $result;
     }
 }

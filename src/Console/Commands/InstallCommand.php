@@ -203,7 +203,7 @@ final class InstallCommand extends Command
         }
 
         foreach ($values as $key => $value) {
-            $line = sprintf('%s=%s', $key, $value);
+            $line = sprintf('%s="%s"', $key, addslashes($value));
 
             if (preg_match(sprintf('/^%s=/m', $key), $env)) {
                 // Update existing key
