@@ -52,6 +52,19 @@ The bridge runs only once per user. After Laravel establishes its own session, s
 
 ---
 
+## Scope
+
+Laravel Legacy Bridge handles authentication continuity during incremental migrations.
+
+It does not:
+- synchronize databases
+- migrate application data
+- replace business logic migration strategies
+- provide authorization mapping
+- migrate users automatically
+
+---
+
 ## Requirements
 
 - PHP 8.3+
