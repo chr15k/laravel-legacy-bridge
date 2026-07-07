@@ -62,7 +62,7 @@ final readonly class LegacyPayload
             default                             => null,
         };
 
-        if (in_array($scalar, [null, 0, '0'], true)) {
+        if (in_array($scalar, [null, 0, '0', ''], true)) {
             return null;
         }
 
