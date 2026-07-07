@@ -12,7 +12,7 @@ final readonly class LegacySessionBridged
     use Dispatchable;
 
     public function __construct(
-        public int $userId,
+        public int|string $userId,
         public string $sessionId,
         public LegacyPayload $payload,
     ) {}

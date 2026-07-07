@@ -205,7 +205,7 @@ final class VerifyCommand extends Command
         }
 
         if (! $this->userExists($userId)) {
-            error(sprintf("User %d not found in the new application's users table", $userId));
+            error(sprintf("User %s not found in the new application's users table", $userId));
 
             return false;
         }
