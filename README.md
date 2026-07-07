@@ -3,7 +3,7 @@
     <img alt="Logo for Laravel Legacy Bridge package" src="art/header-light.jpeg">
 </picture>
 
-<br><br>
+<p></p>
 
 <p align="center">
     <a href="https://github.com/chr15k/laravel-legacy-bridge/actions"><img alt="GitHub Workflow Status (master)" src="https://img.shields.io/github/actions/workflow/status/chr15k/laravel-legacy-bridge/main.yml"></a>
