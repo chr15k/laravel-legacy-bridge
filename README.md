@@ -65,6 +65,19 @@ It does not:
 
 ---
 
+Here's a constraints section suitable for the README or GUIDE:
+
+---
+
+## Initial release constraints
+
+- Database sessions only — file, Redis, and Memcached session drivers are not supported
+- Web requests only — stateless/API bridging is not supported
+- Default auth guard only — bridging into a named guard is not supported in this release
+- Laravel 13 / PHP 8.3+
+
+---
+
 ## Requirements
 
 - PHP 8.3+

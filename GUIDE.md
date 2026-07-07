@@ -26,6 +26,7 @@ users from your legacy application into your new Laravel app without forcing the
 - [Removing the bridge](#removing-the-bridge)
 - [Configuration reference](#configuration-reference)
 - [Troubleshooting](#troubleshooting)
+- [Known Limitations](#known-limitations)
 
 ---
 
@@ -713,3 +714,45 @@ was explicitly set on the legacy app.
 
 Your legacy app (also Laravel) uses `laravel_session` and so does your new app. Set a distinct
 `SESSION_COOKIE` on the new application. See [Step 4 — Cookie naming](#step-4--cookie-naming).
+
+---
+
+## Known Limitations
+
+The following constraints apply to v0.1.0. They may be addressed in future releases.
+
+### Session storage
+
+Only database-backed legacy sessions are supported. The bridge reads session records from a SQL table via a configured database connection. Legacy applications storing sessions in files, Redis, Memcached, or other drivers are not supported in this release.
+
+### Session propagation
+
+The bridge identifies the legacy session exclusively via a request cookie. Applications that propagate session identity through request headers, URL parameters, or tokens are not supported.
+
+### Auth guard
+
+The bridge always authenticates into the default Laravel auth guard (`Auth::guard()`). If your application uses named guards (e.g. `admin`, `api`), the bridged user will be authenticated into the default guard only. Multi-guard bridging is not supported in this release.
+
+### Single legacy source
+
+One legacy database connection and sessions table can be configured per application. Bridging from multiple legacy applications simultaneously is not supported.
+
+### Single legacy cookie
+
+Only one cookie name can be configured. If your legacy application sets more than one session cookie, you must choose one as the bridge target.
+
+### Cookie encryption
+
+The bridge supports two cookie encryption modes: `none` (raw session ID) and `laravel` (Laravel-encrypted cookie). Other encryption schemes are not supported.
+
+### User ID mapping
+
+The user ID resolved from the legacy session payload is passed directly to `loginUsingId()`. This assumes legacy and new application user IDs are identical. If your migration involved re-seeding users or otherwise changing IDs, a custom resolver must handle the mapping before returning the ID.
+
+### Rate limiting
+
+The bridge does not apply rate limiting to bridge attempts. If your application requires rate limiting on unauthenticated requests, apply it at the application level using Laravel's built-in rate limiting middleware before the bridge middleware runs.
+
+### Laravel version
+
+Laravel 13 and PHP 8.3 or higher are required. Earlier versions are not supported.
