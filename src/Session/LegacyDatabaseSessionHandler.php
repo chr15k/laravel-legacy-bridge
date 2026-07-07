@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Chr15k\LegacyBridge\Session;
 
 use Carbon\CarbonInterface;
-use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Data\LegacySession;
 use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
@@ -15,8 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class LegacyDatabaseSessionHandler
 {
-    use DecryptsLegacySessionData;
-
     public function __construct(private Config $config) {}
 
     public function fetch(string $sessionId, bool $includeExpired = false): ?LegacySession

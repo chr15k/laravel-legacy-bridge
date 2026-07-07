@@ -11,6 +11,7 @@ use Chr15k\LegacyBridge\Http\Middleware\LegacySessionBridge;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
 use Chr15k\LegacyBridge\Support\Config;
+use Chr15k\LegacyBridge\Support\SessionDecrypter;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -26,15 +27,26 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(sprintf('%s/../config/%s.php', __DIR__, self::CONFIG), self::CONFIG);
 
-        $this->app->singleton(Config::class, fn (Container $app): Config => new Config($app->make(Repository::class)));
+        // Configuration
+        $this->app->singleton(
+            Config::class,
+            fn (Container $app): Config => new Config($app->make(Repository::class))
+        );
 
+        // Core services
+        $this->app->singleton(SessionDecrypter::class);
         $this->app->singleton(PayloadDecoder::class);
-
         $this->app->singleton(LegacyDatabaseSessionHandler::class);
 
-        $this->app->singleton(LegacyUserResolver::class, fn (Container $app) => $app->make(LegacyBridgeResolverManager::class)->make());
+        // User resolution
+        $this->app->singleton(LegacyBridgeResolverManager::class);
+        $this->app->bind(
+            LegacyUserResolver::class,
+            fn (Container $app): LegacyUserResolver => $app->make(LegacyBridgeResolverManager::class)->make()
+        );
 
-        $this->app->singleton(LegacySessionBridge::class);
+        // Middleware
+        $this->app->scoped(LegacySessionBridge::class);
     }
 
     public function boot(): void

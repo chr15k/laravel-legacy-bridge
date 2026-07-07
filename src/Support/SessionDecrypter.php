@@ -2,18 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Chr15k\LegacyBridge\Concerns;
+namespace Chr15k\LegacyBridge\Support;
 
 use Chr15k\LegacyBridge\Exceptions\MissingLegacyAppKeyException;
-use Chr15k\LegacyBridge\Support\Config;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Str;
 
-trait DecryptsLegacySessionData
+final readonly class SessionDecrypter
 {
+    public function __construct(private Config $config) {}
+
     public function decrypt(string $payload, bool $unserialize = true): ?string
     {
-        $key = app(Config::class)->legacyAppKey();
+        $key = $this->config->legacyAppKey();
 
         if (in_array($key, [null, '', '0'], true)) {
             throw new MissingLegacyAppKeyException;

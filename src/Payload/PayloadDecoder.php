@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Payload;
 
-use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Enums\PayloadFormat;
 use Chr15k\LegacyBridge\Support\Config;
+use Chr15k\LegacyBridge\Support\SessionDecrypter;
 use RuntimeException;
 
-final class PayloadDecoder
+final readonly class PayloadDecoder
 {
-    use DecryptsLegacySessionData;
+    public function __construct(private Config $config, private SessionDecrypter $decrypter) {}
 
     public function decode(string $raw, PayloadFormat $config): LegacyPayload
     {
@@ -52,12 +52,12 @@ final class PayloadDecoder
             return PayloadFormat::Json;
         }
 
-        if (! app(Config::class)->legacyAppKey()) {
+        if (! $this->config->legacyAppKey()) {
             return null;
         }
 
         try {
-            return $this->decrypt(payload: $raw) ? PayloadFormat::Encrypted : null;
+            return $this->decrypter->decrypt(payload: $raw) ? PayloadFormat::Encrypted : null;
         } catch (RuntimeException) {
             return null;
         }
@@ -68,7 +68,7 @@ final class PayloadDecoder
      */
     private function decodeEncrypted(string $raw): array
     {
-        $decrypted = $this->decrypt(payload: $raw);
+        $decrypted = $this->decrypter->decrypt(payload: $raw);
 
         if ($decrypted === null) {
             return [];

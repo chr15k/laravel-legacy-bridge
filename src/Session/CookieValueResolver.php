@@ -2,18 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Chr15k\LegacyBridge\Cookie;
+namespace Chr15k\LegacyBridge\Session;
 
-use Chr15k\LegacyBridge\Concerns\DecryptsLegacySessionData;
 use Chr15k\LegacyBridge\Enums\CookieEncryption;
 use Chr15k\LegacyBridge\Support\Config;
+use Chr15k\LegacyBridge\Support\SessionDecrypter;
 use Illuminate\Cookie\CookieValuePrefix;
 
 final readonly class CookieValueResolver
 {
-    use DecryptsLegacySessionData;
-
-    public function __construct(private Config $config) {}
+    public function __construct(private Config $config, private SessionDecrypter $decrypter) {}
 
     public function resolve(string $cookieValue): ?string
     {
@@ -25,7 +23,7 @@ final readonly class CookieValueResolver
 
     private function resolveLaravelCookie(string $cookieValue): ?string
     {
-        $decrypted = $this->decrypt($cookieValue, unserialize: false);
+        $decrypted = $this->decrypter->decrypt($cookieValue, unserialize: false);
 
         $result = $decrypted === null ? null : CookieValuePrefix::remove($decrypted);
 
