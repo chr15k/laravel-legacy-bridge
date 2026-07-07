@@ -1,7 +1,7 @@
-# laravel-legacy-bridge — User Guide
+# Larvel Legacy Bridge — User Guide
 
-This guide walks through a complete implementation of `laravel-legacy-bridge` for a real-world
-Strangler Fig migration. By the end you will have a working session bridge that authenticates
+This guide walks through a complete implementation of `laravel-legacy-bridge` for a real-world migration.
+By the end you will have a working session bridge that authenticates
 users from your legacy application into your new Laravel app without forcing them to log in again.
 
 ---

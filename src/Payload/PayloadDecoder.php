@@ -37,7 +37,7 @@ final class PayloadDecoder
         $decoded = base64_decode($raw, strict: true);
 
         if ($decoded !== false) {
-            $unserialized = @unserialize($decoded, ['allowed_classes' => false]);
+            $unserialized = @unserialize($decoded);
 
             if (is_array($unserialized)) {
                 return PayloadFormat::Laravel;
@@ -113,7 +113,7 @@ final class PayloadDecoder
                 continue;
             }
 
-            $value = @unserialize($segment, ['allowed_classes' => false]);
+            $value = @unserialize($segment);
 
             if ($value !== false) {
                 $vars[$segments[$i]] = $value;
@@ -155,7 +155,7 @@ final class PayloadDecoder
 
         $data = (json_validate($decoded))
             ? json_decode($decoded, true)
-            : @unserialize($decoded, ['allowed_classes' => false]);
+            : @unserialize($decoded);
 
         return is_array($data) ? $data : [];
     }

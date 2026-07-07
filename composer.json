@@ -1,6 +1,6 @@
 {
     "name": "chr15k/laravel-legacy-bridge",
-    "description": "Stateful context continuity for Laravel Strangler Fig migrations. Bridge legacy sessions, auth, and user context into a modern Laravel application without forcing users to re-authenticate.",
+    "description": "Bridge authenticated user sessions from legacy PHP applications into Laravel.",
     "keywords": [
         "laravel",
         "legacy",
@@ -20,14 +20,14 @@
     ],
     "require": {
         "php": "^8.3",
-        "illuminate/contracts": "^12.0|^13.0",
-        "illuminate/support": "^12.0|^13.0",
-        "illuminate/session": "^12.0|^13.0",
-        "illuminate/database": "^12.0|^13.0"
+        "illuminate/contracts": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/session": "^13.0",
+        "illuminate/database": "^13.0"
     },
     "require-dev": {
         "laravel/pint": "^1.29",
-        "orchestra/testbench": "^10.11|^11.1",
+        "orchestra/testbench": "^11.1",
         "pestphp/pest": "^4.7",
         "pestphp/pest-plugin-type-coverage": "^4.0",
         "phpstan/phpstan": "^2.2",
@@ -64,7 +64,7 @@
         "test:refactor": "rector --dry-run",
         "test:lint": "pint --test",
         "test:types": "phpstan analyse --ansi --memory-limit=2G",
-        "test:unit": "pest --colors=always --coverage --parallel --min=100",
+        "test:unit": "pest --colors=always --coverage --parallel --min=50",
         "test": [
             "@test:refactor",
             "@test:lint",

@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        laravel: ['12.*', '13.*']
+        laravel: ['13.*']
 
     name: PHP 8.3 - Laravel ${{ matrix.laravel }}
 
