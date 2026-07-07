@@ -67,7 +67,7 @@ final readonly class LegacyDatabaseSessionHandler
             payload: is_string($row->{$cols['payload']}) ? $row->{$cols['payload']} : '',
             lastActivity: $activity->timestamp,
             expired: $activity->isBefore($threshold),
-            age: now()->diffInMinutes($activity),
+            age: round(abs(now()->diffInMinutes($activity))),
         );
     }
 
