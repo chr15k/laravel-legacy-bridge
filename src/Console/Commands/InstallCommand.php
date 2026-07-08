@@ -67,6 +67,7 @@ final class InstallCommand extends Command
 
         if ($needsResolver) {
             $this->publishStub();
+            $this->writeResolverEnv();
         }
 
         $this->printMiddlewareStep();
@@ -75,6 +76,18 @@ final class InstallCommand extends Command
         outro('Installation complete. Run php artisan legacy-bridge:verify to confirm your setup.');
 
         return self::SUCCESS;
+    }
+
+    private function writeResolverEnv(): void
+    {
+        $this->writeEnvValues([
+            'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'custom',
+            'LEGACY_BRIDGE_RESOLVER_CLASS'  => 'App\\Bridge\\LegacyUserResolver',
+        ]);
+
+        $this->removeEnvKeys([
+            'LEGACY_BRIDGE_RESOLVER_KEY',
+        ]);
     }
 
     private function publishConfig(): void
@@ -141,29 +154,34 @@ final class InstallCommand extends Command
             ],
             'codeigniter3' => [
                 'LEGACY_BRIDGE_COOKIE'                    => 'ci_session',
-                'LEGACY_BRIDGE_SESSION_TABLE'             => 'ci_sessions',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'            => 'php_session',
+                'LEGACY_BRIDGE_SESSION_TABLE'             => 'ci_sessions',
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_ID'      => 'id',
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD' => 'data',
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_TIME'    => 'timestamp',
-                'LEGACY_BRIDGE_SESSION_TABLE_TIME_FORMAT' => 'datetime',
+                'LEGACY_BRIDGE_SESSION_TIME_FORMAT'       => 'datetime',
             ],
             'codeigniter4' => [
                 'LEGACY_BRIDGE_COOKIE'                    => 'ci_session',
-                'LEGACY_BRIDGE_SESSION_TABLE'             => 'ci_sessions',
                 'LEGACY_BRIDGE_PAYLOAD_FORMAT'            => 'php_session',
-                'LEGACY_BRIDGE_RESOLVER_DRIVER'           => 'key',
-                'LEGACY_BRIDGE_RESOLVER_KEY'              => 'user.id',
+                'LEGACY_BRIDGE_SESSION_TABLE'             => 'ci_sessions',
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_ID'      => 'id',
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD' => 'data',
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_TIME'    => 'timestamp',
-                'LEGACY_BRIDGE_SESSION_TABLE_TIME_FORMAT' => 'datetime',
+                'LEGACY_BRIDGE_SESSION_TIME_FORMAT'       => 'datetime',
+                'LEGACY_BRIDGE_SESSION_TIME_SEMANTICS'    => 'activity',
+                'LEGACY_BRIDGE_RESOLVER_DRIVER'           => 'key',
+                'LEGACY_BRIDGE_RESOLVER_KEY'              => 'user.id',
             ],
             'symfony' => [
-                'LEGACY_BRIDGE_COOKIE'          => 'PHPSESSID',
-                'LEGACY_BRIDGE_PAYLOAD_FORMAT'  => 'php_session',
-                'LEGACY_BRIDGE_RESOLVER_DRIVER' => 'custom',
-                'LEGACY_BRIDGE_APP_KEY'         => text(
+                'LEGACY_BRIDGE_COOKIE'                    => 'PHPSESSID',
+                'LEGACY_BRIDGE_PAYLOAD_FORMAT'            => 'php_session',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_ID'      => 'sess_id',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD' => 'sess_data',
+                'LEGACY_BRIDGE_SESSION_TABLE_COL_TIME'    => 'sess_time',
+                'LEGACY_BRIDGE_SESSION_TIME_FORMAT'       => 'timestamp',
+                'LEGACY_BRIDGE_SESSION_TIME_SEMANTICS'    => 'activity',
+                'LEGACY_BRIDGE_APP_KEY'                   => text(
                     label: 'APP_SECRET',
                     required: false,
                     hint: '.env APP_SECRET (only needed for encrypted features)',
@@ -180,9 +198,65 @@ final class InstallCommand extends Command
         };
     }
 
+    /**
+     * @param  array<string, string>  $values
+     * @return array<string, string>
+     */
+    private function sortEnvValues(array $values): array
+    {
+        $order = [
+            'DB'                => 10,
+            'APP_KEY'           => 20,
+            'COOKIE'            => 30,
+            'PAYLOAD'           => 40,
+            'SESSION_TABLE'     => 50,
+            'SESSION_TABLE_COL' => 60,
+            'SESSION_TIME'      => 70,
+            'RESOLVER'          => 80,
+        ];
+
+        uksort($values, function ($a, $b) use ($order): int {
+            $aOrder = collect($order)->first(
+                fn ($_, $prefix): bool => str_contains($a, $prefix)
+            ) ?? 999;
+
+            $bOrder = collect($order)->first(
+                fn ($_, $prefix): bool => str_contains($b, $prefix)
+            ) ?? 999;
+
+            return $aOrder <=> $bOrder;
+        });
+
+        return $values;
+    }
+
     private function needsCustomResolver(string $preset): bool
     {
         return $preset === 'symfony';
+    }
+
+    /**
+     * @param  list<string>  $keys
+     */
+    private function removeEnvKeys(array $keys): void
+    {
+        $envPath = base_path('.env');
+
+        $env = file_get_contents($envPath);
+
+        if ($env === false) {
+            return;
+        }
+
+        foreach ($keys as $key) {
+            $env = preg_replace(
+                sprintf('/^%s=.*\R?/m', $key),
+                '',
+                $env
+            ) ?? $env;
+        }
+
+        file_put_contents($envPath, $env);
     }
 
     /**
@@ -190,6 +264,8 @@ final class InstallCommand extends Command
      */
     private function writeEnvValues(array $values): void
     {
+        $values = $this->sortEnvValues($values);
+
         $envPath = base_path('.env');
 
         if (! file_exists($envPath)) {
@@ -203,7 +279,7 @@ final class InstallCommand extends Command
         }
 
         foreach ($values as $key => $value) {
-            $line = sprintf('%s="%s"', $key, addslashes($value));
+            $line = sprintf('%s="%s"', $key, addslashes((string) $value));
 
             if (preg_match(sprintf('/^%s=/m', $key), $env)) {
                 // Update existing key

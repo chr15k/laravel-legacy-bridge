@@ -13,5 +13,10 @@
         <include>
             <directory>src</directory>
         </include>
+        <exclude>
+            <directory suffix=".php">src/Console</directory>
+            <directory suffix=".php">src/Exceptions</directory>
+            <directory suffix=".php">src/Data</directory>
+        </exclude>
     </source>
 </phpunit>

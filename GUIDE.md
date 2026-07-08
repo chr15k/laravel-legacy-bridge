@@ -203,13 +203,11 @@ class LegacyUserResolver implements Contract
 }
 ```
 
-Update config:
+Update config in `.env`:
 
-```php
-'resolver' => [
-    'driver' => 'custom',
-    'class'  => \App\Bridge\LegacyUserResolver::class,
-],
+```
+LEGACY_BRIDGE_RESOLVER_DRIVER=custom
+LEGACY_BRIDGE_RESOLVER_CLASS="App\\Bridge\\LegacyUserResolver"
 ```
 
 ### LegacyPayload API
