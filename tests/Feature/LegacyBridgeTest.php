@@ -465,3 +465,80 @@ it('bridges a laravel encrypted cookie', function (): void {
 
     $this->assertAuthenticated();
 });
+
+// ---------------------------------------------------------------------------
+// Datetime format + timezone
+// ---------------------------------------------------------------------------
+
+describe('datetime format', function (): void {
+    beforeEach(function (): void {
+        config()->set('legacy-bridge.database.time.format', 'datetime');
+        config()->set('legacy-bridge.database.columns.time', 'last_activity');
+    });
+
+    it('bridges a session with a UTC datetime last_activity column', function (): void {
+        $user = User::factory()->create();
+
+        DB::table('legacy_sessions')->insert([
+            'id'            => 'test-session',
+            'user_id'       => $user->id,
+            'payload'       => base64_encode(serialize(['user_id' => $user->id])),
+            'last_activity' => now()->toDateTimeString(),
+        ]);
+
+        $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
+            ->get('/protected')
+            ->assertOk();
+
+        $this->assertAuthenticated();
+    });
+
+    it('bridges a session whose datetime is stored in a non-UTC timezone', function (): void {
+        $user = User::factory()->create();
+
+        // Store the current time expressed in America/New_York (UTC-4 or UTC-5)
+        $legacyNow = now()->setTimezone('America/New_York')->toDateTimeString();
+
+        DB::table('legacy_sessions')->insert([
+            'id'            => 'test-session',
+            'user_id'       => $user->id,
+            'payload'       => base64_encode(serialize(['user_id' => $user->id])),
+            'last_activity' => $legacyNow,
+        ]);
+
+        config()->set('legacy-bridge.database.time.timezone', 'America/New_York');
+
+        $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
+            ->get('/protected')
+            ->assertOk();
+
+        $this->assertAuthenticated();
+    });
+
+    it('rejects an expired session stored in a non-UTC timezone', function (): void {
+        $user = User::factory()->create();
+
+        // 3 hours ago expressed in America/New_York — well outside the 120m lifetime
+        $expiredTime = now()->subHours(3)->setTimezone('America/New_York')->toDateTimeString();
+
+        DB::table('legacy_sessions')->insert([
+            'id'            => 'test-session',
+            'user_id'       => $user->id,
+            'payload'       => base64_encode(serialize(['user_id' => $user->id])),
+            'last_activity' => $expiredTime,
+        ]);
+
+        config()->set('legacy-bridge.database.time.timezone', 'America/New_York');
+
+        $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
+            ->get('/protected')
+            ->assertRedirect();
+
+        $this->assertGuest();
+
+        Event::assertDispatched(
+            LegacySessionBridgeFailed::class,
+            fn ($e): bool => $e->reason === BridgeFailureReason::SessionNotFound,
+        );
+    });
+});

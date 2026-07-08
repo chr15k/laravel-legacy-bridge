@@ -10,6 +10,7 @@ use Chr15k\LegacyBridge\Enums\InvalidationStrategy;
 use Chr15k\LegacyBridge\Enums\PayloadFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
 use Chr15k\LegacyBridge\Enums\SessionTimeSemantics;
+use DateTimeZone;
 use Illuminate\Contracts\Config\Repository;
 
 final readonly class Config
@@ -74,6 +75,13 @@ final readonly class Config
         return $config;
     }
 
+    public function sessionIdPrefix(): string
+    {
+        $config = $this->config->get('legacy-bridge.database.id_prefix', '');
+
+        return is_string($config) ? $config : '';
+    }
+
     public function sessionTimeSemantics(): SessionTimeSemantics
     {
         $default = SessionTimeSemantics::Activity;
@@ -98,6 +106,13 @@ final readonly class Config
         }
 
         return SessionTimeFormat::tryFrom($value) ?? $default;
+    }
+
+    public function sessionTimeZone(): DateTimeZone
+    {
+        $value = $this->config->get('legacy-bridge.database.time.timezone', 'UTC');
+
+        return new DateTimeZone(is_string($value) ? $value : 'UTC');
     }
 
     public function lifetime(): int

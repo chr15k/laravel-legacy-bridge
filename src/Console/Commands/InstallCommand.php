@@ -53,6 +53,16 @@ final class InstallCommand extends Command
 
         $envValues = array_merge($envValues, $this->presetEnv($preset));
 
+        $tz = text(
+            label: 'Timezone of the session datetime column',
+            default: 'UTC',
+            hint: 'The timezone your legacy app used when writing datetime values to the sessions table (e.g. America/New_York). Leave as UTC if unsure.',
+        );
+
+        if ($tz !== '' && $tz !== 'UTC') {
+            $envValues['LEGACY_BRIDGE_SESSION_TIME_TIMEZONE'] = $tz;
+        }
+
         $needsResolver = $this->needsCustomResolver($preset);
 
         if (! $needsResolver) {
@@ -170,6 +180,7 @@ final class InstallCommand extends Command
                 'LEGACY_BRIDGE_SESSION_TABLE_COL_TIME'    => 'timestamp',
                 'LEGACY_BRIDGE_SESSION_TIME_FORMAT'       => 'datetime',
                 'LEGACY_BRIDGE_SESSION_TIME_SEMANTICS'    => 'activity',
+                'LEGACY_BRIDGE_SESSION_ID_PREFIX'         => 'ci_session:',
                 'LEGACY_BRIDGE_RESOLVER_DRIVER'           => 'key',
                 'LEGACY_BRIDGE_RESOLVER_KEY'              => 'user.id',
             ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Chr15k\LegacyBridge\Session;
 
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Chr15k\LegacyBridge\Data\LegacySession;
 use Chr15k\LegacyBridge\Enums\SessionTimeFormat;
@@ -26,20 +27,25 @@ final readonly class LegacyDatabaseSessionHandler
 
         $semantics = $this->config->sessionTimeSemantics();
         $format = $this->config->sessionTimeFormat();
+        $timezone = $this->config->sessionTimeZone();
 
         $threshold = now()->subMinutes($this->config->lifetime());
 
+        $lookupId = $this->config->sessionIdPrefix().$sessionId;
+
         $query = DB::connection($this->config->connection())
             ->table($this->config->table())
-            ->where($cols['id'], $sessionId);
+            ->where($cols['id'], $lookupId);
 
         if (! $includeExpired) {
+            $compareTime = $semantics->representsExpires() ? now() : $threshold;
+
             $query->where(
                 $cols['time'],
                 '>',
-                $format->toStorage(
-                    $semantics->representsExpires() ? now() : $threshold,
-                )
+                $format->isDatetime()
+                    ? CarbonImmutable::instance($compareTime)->setTimezone($timezone)->toDateTimeString()
+                    : $format->toStorage($compareTime)
             );
         }
 
@@ -75,7 +81,7 @@ final readonly class LegacyDatabaseSessionHandler
     {
         DB::connection($this->config->connection())
             ->table($this->config->table())
-            ->where($this->config->sessionColumns()['id'], $sessionId)
+            ->where($this->config->sessionColumns()['id'], $this->config->sessionIdPrefix().$sessionId)
             ->delete();
 
         $cookie = $this->config->cookie();
@@ -98,13 +104,14 @@ final readonly class LegacyDatabaseSessionHandler
         mixed $value,
         SessionTimeSemantics $semantics,
         SessionTimeFormat $format,
-    ): ?CarbonInterface {
+    ): ?CarbonImmutable {
 
         if (! is_string($value) && ! is_int($value)) {
             return null;
         }
 
-        $carbon = $format->fromStorage($value);
+        // resolve to UTC for consistent comparisons
+        $carbon = $this->resolveTime($value, $format);
 
         return match ($semantics) {
             SessionTimeSemantics::Activity => $carbon,
@@ -112,5 +119,14 @@ final readonly class LegacyDatabaseSessionHandler
             // on LegacySession remain consistent regardless of which semantics is used
             SessionTimeSemantics::Expires => $carbon->subMinutes($this->config->lifetime()),
         };
+    }
+
+    private function resolveTime(int|string $value, SessionTimeFormat $format): CarbonImmutable
+    {
+        if ($format->isTimestamp()) {
+            return CarbonImmutable::createFromTimestampUTC((int) $value);
+        }
+
+        return CarbonImmutable::parse($value, $this->config->sessionTimeZone())->utc();
     }
 }

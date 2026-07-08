@@ -72,9 +72,25 @@ return [
             'time'    => env('LEGACY_BRIDGE_SESSION_TABLE_COL_TIME', 'last_activity'),
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Session ID Prefix
+        |--------------------------------------------------------------------------
+        |
+        | Some frameworks store sessions in the database with a prefix prepended
+        | to the session ID (e.g. CodeIgniter 4 stores "ci_session:abc123").
+        | The cookie itself contains only the raw ID, so this prefix is applied
+        | before the database lookup.
+        |
+        | Leave empty for most frameworks.
+        |
+        */
+        'id_prefix' => env('LEGACY_BRIDGE_SESSION_ID_PREFIX', ''),
+
         'time' => [
             'semantics' => env('LEGACY_BRIDGE_SESSION_TIME_SEMANTICS', 'activity'),
             'format'    => env('LEGACY_BRIDGE_SESSION_TIME_FORMAT', 'timestamp'),
+            'timezone'  => env('LEGACY_BRIDGE_SESSION_TIME_TIMEZONE', 'UTC'),
         ],
     ],
 

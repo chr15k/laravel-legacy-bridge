@@ -358,6 +358,15 @@ If the time column stores a datetime string rather than a Unix timestamp:
 LEGACY_BRIDGE_SESSION_TIME_FORMAT=datetime
 ```
 
+If the datetime values are stored in a timezone other than UTC:
+
+```dotenv
+LEGACY_BRIDGE_SESSION_TIME_TIMEZONE=America/New_York
+```
+
+> [!NOTE]
+> This only applies to `format=datetime`. Unix timestamps are always timezone-agnostic and this setting has no effect on them.
+
 ---
 
 ## Legacy Laravel applications
@@ -430,7 +439,9 @@ LEGACY_BRIDGE_SESSION_TIME_FORMAT=datetime
 
 ### CodeIgniter 4
 
-CI4 uses PHP's native session handler with a `ci_sessions` table:
+CI4 uses PHP's native session handler with a `ci_sessions` table. CI4 also prefixes the
+session ID in the database with `ci_session:` — the cookie carries the raw ID only, so
+`LEGACY_BRIDGE_SESSION_ID_PREFIX` is required for the lookup to succeed:
 
 ```dotenv
 LEGACY_BRIDGE_COOKIE=ci_session
@@ -441,6 +452,7 @@ LEGACY_BRIDGE_RESOLVER_KEY=user.id
 LEGACY_BRIDGE_SESSION_TABLE_COL_PAYLOAD=data
 LEGACY_BRIDGE_SESSION_TABLE_COL_TIME=timestamp
 LEGACY_BRIDGE_SESSION_TIME_FORMAT=datetime
+LEGACY_BRIDGE_SESSION_ID_PREFIX=ci_session:
 ```
 
 ### Symfony
@@ -649,6 +661,7 @@ composer remove chr15k/laravel-legacy-bridge
 | `database.columns.id` | `id` | Session ID column |
 | `database.columns.payload` | `payload` | Payload column |
 | `database.columns.time` | `last_activity` | Time column |
+| `database.id_prefix` | `` | Prefix prepended to the session ID before DB lookup |
 | `database.time.semantics` | `activity` | `activity` or `expires` |
 | `database.time.format` | `timestamp` | `timestamp` or `datetime` |
 | `lifetime` | `120` | Minutes a session remains valid |

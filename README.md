@@ -245,6 +245,7 @@ return [
         'time' => [
             'semantics' => env('LEGACY_BRIDGE_SESSION_TIME_SEMANTICS', 'activity'), // 'activity' | 'expires'
             'format'    => env('LEGACY_BRIDGE_SESSION_TIME_FORMAT', 'timestamp'),   // 'timestamp' | 'datetime'
+            'timezone'  => env('LEGACY_BRIDGE_SESSION_TIME_TIMEZONE', 'UTC'),
         ],
     ],
 
