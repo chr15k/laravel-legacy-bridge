@@ -22,7 +22,6 @@ use function Laravel\Prompts\callout;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\intro;
 use function Laravel\Prompts\outro;
-use function Laravel\Prompts\warning;
 
 #[Signature('legacy-bridge:verify
     {--session-id= : A real legacy session ID to test resolution against}
