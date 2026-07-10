@@ -85,8 +85,12 @@ See more information on this [here](GUIDE.md#known-limitations)
 
 ## Quickstart
 
+### Install package
 ```bash
 composer require chr15k/laravel-legacy-bridge
+```
+### Run install command
+```bash
 php artisan legacy-bridge:install
 ```
 
@@ -112,7 +116,9 @@ php artisan legacy-bridge:verify
 php artisan legacy-bridge:verify --session-id=a_real_session_id
 ```
 
-The bundled `auto` resolver covers most plain PHP and standard Laravel legacy session structures out of the box. A custom resolver is optional — only needed if `auto` can't find your user ID.
+Example output:
+
+<img width="725" height="624" alt="Screenshot 2026-07-09 at 21 05 28" src="https://github.com/user-attachments/assets/c3ea0894-8791-41e7-9919-d7ed61e33254" />
 
 ---
 
