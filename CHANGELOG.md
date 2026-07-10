@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - `php artisan legacy-bridge:verify` - more useful outputs
-- `LegacyDatabaseSessionHandler` - small refactor
+- `LegacyDatabaseSessionHandler` - small refactor + CarbonImmutable
 
 ## 0.1.1 - 2026-07-08
 
