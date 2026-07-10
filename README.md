@@ -12,6 +12,10 @@
     <a href="https://packagist.org/packages/chr15k/laravel-legacy-bridge"><img alt="License" src="https://img.shields.io/github/license/chr15k/laravel-legacy-bridge"></a>
 </p>
 
+<p align="center">
+    <a href="https://medium.com/@chr15k/stop-forcing-your-users-to-log-in-again-session-continuity-during-laravel-migrations-364323a3ce5a?sharedUserId=chr15k"><img alt="Medium Article" src="https://img.shields.io/badge/Medium-Read%20the%20article-black?logo=medium"></a>
+</p>
+
 ------
 
 **Laravel Legacy Bridge** provides session continuity between legacy PHP applications and Laravel.
