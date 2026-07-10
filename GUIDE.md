@@ -279,37 +279,7 @@ user ID resolved, user existence confirmed — without authenticating anyone or 
 
 Example output:
 
-```
-  laravel-legacy-bridge — configuration check
-
-┌──────────────────────────────────────────────────────┐
-│ Config                                               │
-│ file         config/legacy-bridge.php               │
-│ cookie       PHPSESSID                              │
-│ connection   legacy                                 │
-│ table        sessions                               │
-│ format       auto                                   │
-│ invalidation after_write                            │
-└──────────────────────────────────────────────────────┘
-
-  ✓ Connected to legacy.sessions (1,842 sessions)
-  ✓ Resolver ready: auto
-  ✓ Cookie alignment OK: legacy=PHPSESSID  laravel=laravel_session
-
-  Testing session ID: abc123def456…
-
-┌──────────────────────────────────────────────────────┐
-│ Session resolved                                     │
-│ session_id   abc123def456…                          │
-│ format       php_session                            │
-│ age          4m (lifetime: 120m)                    │
-│ keys         user_id, locale, _token                │
-│ user_id      42                                     │
-│ user_found   yes                                    │
-└──────────────────────────────────────────────────────┘
-
-  All checks passed.
-```
+<img width="725" height="624" alt="Screenshot 2026-07-09 at 21 05 28" src="https://github.com/user-attachments/assets/c3ea0894-8791-41e7-9919-d7ed61e33254" />
 
 ---
 
