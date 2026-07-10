@@ -85,16 +85,16 @@ See more information on this [here](GUIDE.md#known-limitations)
 
 ## Quickstart
 
-### Install package
+#### Install package
 ```bash
 composer require chr15k/laravel-legacy-bridge
 ```
-### Run install command
+#### Run install command
 ```bash
 php artisan legacy-bridge:install
 ```
 
-The install command walks you through setup interactively — it detects your legacy framework, collects credentials, and writes your `.env` automatically.
+The install command walks you through setup interactively — it includes some legacy framework presets, collects credentials, and writes your `.env` automatically.
 
 Register the middleware in `bootstrap/app.php`:
 
