@@ -20,9 +20,7 @@ use Throwable;
 
 use function Laravel\Prompts\callout;
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\info;
 use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\warning;
 
@@ -86,12 +84,18 @@ final class VerifyCommand extends Command
             label: 'Config',
             content: [
                 Element::keyValueList([
-                    'file'         => 'config/legacy-bridge.php',
-                    'cookie'       => $this->config->cookie(),
-                    'connection'   => $this->config->connection(),
-                    'table'        => $this->config->table(),
-                    'format'       => $this->config->format()->value,
-                    'invalidation' => $this->config->invalidationStrategy()->value,
+                    'Legacy Cookie'          => $this->config->cookie(),
+                    'DB Connection'          => $this->config->connection(),
+                    'DB Table'               => $this->config->table(),
+                    'Payload Format'         => $this->config->format()->value,
+                    'Invalidation Strategy'  => $this->config->invalidationStrategy()->value,
+                    'Resolver Driver'        => $this->config->resolver()['driver'] ?? 'not configured',
+                    'Session Lifetime'       => $this->config->lifetime().' minutes',
+                    'Session Timezone'       => $this->config->sessionTimeZone()->getName(),
+                    'Session Time Semantics' => $this->config->sessionTimeSemantics()->value,
+                    'Session Time Format'    => $this->config->sessionTimeFormat()->value,
+                    'Session ID Prefix'      => $this->config->sessionIdPrefix() ?: '(none)',
+                    'Mapped Columns'         => implode(', ', $this->config->sessionColumns()),
                 ]),
             ],
         );
@@ -101,10 +105,22 @@ final class VerifyCommand extends Command
 
     private function checkConnection(): bool
     {
-        $connection = $this->option('connection') ?? $this->config->connection();
+        $connection = is_string($this->option('connection'))
+            ? $this->option('connection')
+            : $this->config->connection();
 
-        if (! is_string($connection)) {
-            error('Connection is not configured - check config("legacy-bridge.database.connection")');
+        if ($connection === '' || $connection === '0') {
+            callout(
+                label: 'Connection Error',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => '(not configured)',
+                        'Table'      => $this->config->table(),
+                    ]),
+                ],
+                type: 'error',
+                info: 'check config("legacy-bridge.database.connection")',
+            );
 
             return false;
         }
@@ -113,11 +129,32 @@ final class VerifyCommand extends Command
 
         try {
             $count = DB::connection($connection)->table($table)->count();
-            info(sprintf('Connected to %s.%s (%d sessions)', $connection, $table, $count));
+            $active = $this->sessionHandler->active();
+
+            callout(
+                label: 'Sessions',
+                content: [
+                    Element::keyValueList([
+                        'Total Sessions'  => (string) $count,
+                        'Active Sessions' => (string) $active,
+                    ]),
+                ],
+                info: sprintf('Connected to %s.%s', $connection, $table),
+            );
 
             return true;
         } catch (Throwable $throwable) {
-            error(sprintf('Cannot connect to %s.%s: %s', $connection, $table, $throwable->getMessage()));
+            callout(
+                label: 'Connection Error',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => $connection,
+                        'Table'      => $table,
+                        'Error'      => $throwable->getMessage(),
+                    ]),
+                ],
+                type: 'error',
+            );
 
             return false;
         }
@@ -127,11 +164,32 @@ final class VerifyCommand extends Command
     {
         try {
             $this->resolverManager->make();
-            info(sprintf('Resolver ready: %s', $this->config->resolver()['driver']));
+
+            $resolver = $this->config->resolver()['driver'] ?? 'not configured';
+
+            callout(
+                label: 'Resolver',
+                content: [
+                    Element::keyValueList([
+                        'Driver' => $resolver,
+                    ]),
+                ],
+                info: $resolver
+                    ? 'Resolver ready'
+                    : '<comment>Resolver not configured</comment>',
+            );
 
             return true;
         } catch (Throwable $throwable) {
-            error('Resolver error: '.$throwable->getMessage());
+            callout(
+                label: 'Resolver Error',
+                content: [
+                    Element::keyValueList([
+                        'Error' => $throwable->getMessage(),
+                    ]),
+                ],
+                type: 'error',
+            );
 
             return false;
         }
@@ -143,85 +201,169 @@ final class VerifyCommand extends Command
         $laravelCookie = config('session.cookie');
 
         if (! is_string($laravelCookie)) {
-            error('Laravel session cookie not configured - check config("session.cookie")');
+            callout(
+                label: 'Cookie Alignment',
+                content: [
+                    Element::keyValueList([
+                        'Legacy Cookie'  => $legacyCookie,
+                        'Laravel Cookie' => '(not configured)',
+                    ]),
+                ],
+                type: 'error',
+                info: 'check config("session.cookie")',
+            );
 
             return false;
         }
 
         if ($legacyCookie === $laravelCookie) {
-            warning(sprintf(
-                'Cookie collision: both legacy and Laravel are using "%s". Set SESSION_COOKIE to a different value.',
-                $legacyCookie,
-            ));
+            callout(
+                label: 'Cookie Alignment',
+                content: [
+                    Element::keyValueList([
+                        'Legacy Cookie'  => $legacyCookie,
+                        'Laravel Cookie' => $laravelCookie,
+                    ]),
+                ],
+                type: 'error',
+                info: 'Cookie collision — set SESSION_COOKIE to a different value',
+            );
 
             return false;
         }
 
-        info(sprintf('Cookie alignment OK: legacy=%s  laravel=%s', $legacyCookie, $laravelCookie));
+        callout(
+            label: 'Cookie Alignment',
+            content: [
+                Element::keyValueList([
+                    'Legacy Cookie'  => $legacyCookie,
+                    'Laravel Cookie' => $laravelCookie,
+                ]),
+            ],
+            info: 'Cookie alignment OK'
+        );
 
         return true;
     }
 
     private function testSession(string $sessionId): bool
     {
-        note(sprintf('Testing session ID: %s…', mb_substr($sessionId, 0, 12)));
+        $connection = is_string($this->option('connection'))
+            ? $this->option('connection')
+            : $this->config->connection();
 
-        $connection = $this->option('connection') ?? $this->config->connection();
         $table = $this->config->table();
         $lifetime = $this->config->lifetime();
-
-        if (! is_string($connection)) {
-            error('Connection not configured - check config("legacy-bridge.database.connection")');
-
-            return false;
-        }
 
         $data = $this->sessionHandler->fetch(sessionId: $sessionId, includeExpired: true);
 
         if (! $data instanceof LegacySession) {
-            error(sprintf('Session "%s" not found in %s', $sessionId, $table));
+            callout(
+                label: 'Session Lookup',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => $connection,
+                        'Table'      => $table,
+                        'Session ID' => $sessionId,
+                    ]),
+                ],
+                type: 'error',
+                info: 'Session not found in the database',
+            );
 
             return false;
         }
 
         if ($data->expired) {
-            warning(sprintf('Session is %dm old (lifetime: %dm) — it would be rejected', $data->age, $lifetime));
+            callout(
+                label: 'Session Lookup',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => $connection,
+                        'Table'      => $table,
+                        'Session ID' => $sessionId,
+                        'Age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
+                    ]),
+                ],
+                type: 'warning',
+                info: 'Session is expired but otherwise valid',
+            );
         }
 
         $payload = $this->decoder->decode($data->payload, $this->config->format());
 
         if ($payload->isEmpty()) {
-            error('Decoded payload is empty — check format config');
+            callout(
+                label: 'Session Lookup',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => $connection,
+                        'Table'      => $table,
+                        'Session ID' => $sessionId,
+                        'Age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
+                    ]),
+                ],
+                type: 'error',
+                info: 'Decoded payload is empty — check format config',
+            );
 
             return false;
         }
 
         $userId = $this->resolverManager->make()->resolve($payload);
 
-        if (! $userId) {
-            error('Resolver returned null — no user ID found in payload');
+        if ($userId === null) {
+            callout(
+                label: 'Session Lookup',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => $connection,
+                        'Table'      => $table,
+                        'Session ID' => $sessionId,
+                        'Age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
+                    ]),
+                ],
+                type: 'error',
+                info: 'Resolver returned null — no user ID found in payload',
+            );
 
             return false;
         }
 
         if (! $this->userExists($userId)) {
-            error(sprintf("User %s not found in the new application's users table", $userId));
+            callout(
+                label: 'Session Lookup',
+                content: [
+                    Element::keyValueList([
+                        'Connection' => $connection,
+                        'Table'      => $table,
+                        'Session ID' => $sessionId,
+                        'Age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
+                        'User ID'    => (string) $userId,
+                    ]),
+                ],
+                type: 'error',
+                info: 'User ID resolved from payload but not found in the users table',
+            );
 
             return false;
         }
 
         callout(
-            label: 'Session resolved',
+            label: 'Session Resolved',
             content: [
                 Element::keyValueList([
-                    'session_id' => mb_substr($sessionId, 0, 12).'…',
-                    'age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
-                    'keys'       => implode(', ', array_keys($payload->all())),
-                    'user_id'    => (string) $userId,
-                    'user_found' => 'yes',
+                    'Session ID' => mb_substr($sessionId, 0, 12).'…',
+                    'Age'        => $data->age.'m (lifetime: '.$lifetime.'m)',
+                    'Keys'       => implode(', ', array_keys($payload->all())),
+                    'User ID'    => (string) $userId,
+                    'User Found' => 'yes',
                 ]),
             ],
             type: $data->expired ? 'warning' : 'info',
+            info: $data->expired
+                ? 'Session is expired but otherwise valid'
+                : 'Session is valid and would be bridged',
         );
 
         return ! $data->expired;
