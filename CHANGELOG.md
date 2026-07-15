@@ -4,14 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## 0.1.2 - 2026-07-09
+## [0.1.3] - 2026-07-15
+
+### Fixed
+- Middleware priority now registered automatically by the service provider,
+  ensuring the bridge runs before `Authenticate` on `auth`-protected routes.
+  Previously, appending to the `web` group placed the bridge after Laravel's
+  priority-elevated `Authenticate` middleware, causing silent redirect to `/login`
+  with no events dispatched. Thanks to [@ylynfatt](https://github.com/ylynfatt)
+  for the detailed report and diagnosis.
+
+## [0.1.2] - 2026-07-09
 
 ### Changed
 
 - `php artisan legacy-bridge:verify` - more useful outputs
 - `LegacyDatabaseSessionHandler` - small refactor + CarbonImmutable
 
-## 0.1.1 - 2026-07-08
+## [0.1.1] - 2026-07-08
 
 ### Added
 
@@ -27,7 +37,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - `Config::sessionTimeZone()` now correctly narrows the config value to `string` before passing it to `DateTimeZone`, resolving a PHPStan level-max type error.
 
-## 0.1.0 - 2026-07-07
+## [0.1.0] - 2026-07-07
 
 ### Added
 
