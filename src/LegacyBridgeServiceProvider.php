@@ -12,9 +12,11 @@ use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 use Chr15k\LegacyBridge\Session\LegacyDatabaseSessionHandler;
 use Chr15k\LegacyBridge\Support\Config;
 use Chr15k\LegacyBridge\Support\SessionDecrypter;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
@@ -49,11 +51,16 @@ final class LegacyBridgeServiceProvider extends ServiceProvider
         $this->app->scoped(LegacySessionBridge::class);
     }
 
-    public function boot(): void
+    public function boot(Kernel $kernel): void
     {
         $this->app->afterResolving(EncryptCookies::class, function (EncryptCookies $middleware, Container $app): void {
             $middleware->disableFor($app->make(Config::class)->cookie());
         });
+
+        $kernel->addToMiddlewarePriorityBefore(
+            before: AuthenticatesRequests::class,
+            middleware: LegacySessionBridge::class
+        );
 
         if ($this->app->runningInConsole()) {
             $this->publishes([

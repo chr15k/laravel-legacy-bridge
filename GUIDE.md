@@ -139,8 +139,8 @@ In `bootstrap/app.php`:
 ```
 
 > [!NOTE]
-> Appending to the `web` group guarantees the bridge runs after `StartSession`. Cookie
-> encryption exclusion is registered automatically — no additional configuration required.
+> Middleware priority is registered automatically by the service provider, ensuring the
+> bridge runs before `Authenticate` on `auth`-protected routes.
 
 ---
 

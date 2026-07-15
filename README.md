@@ -110,9 +110,6 @@ Register the middleware in `bootstrap/app.php`:
 })
 ```
 
-> [!NOTE]
-> Cookie encryption exclusion for the legacy cookie is handled automatically by the service provider — no `encryptCookies()` configuration needed.
-
 Verify before routing real traffic:
 
 ```bash
