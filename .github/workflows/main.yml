@@ -2,22 +2,16 @@ name: PHP Composer
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        laravel: ['13.*']
-
-    name: PHP 8.3 - Laravel ${{ matrix.laravel }}
 
     steps:
       - uses: actions/checkout@v7
@@ -25,7 +19,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           coverage: xdebug
 
       - name: Validate composer.json and composer.lock
@@ -33,12 +27,6 @@ jobs:
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
-
-      - name: Constrain Laravel version
-        run: composer require "laravel/framework:${{ matrix.laravel }}" --no-update
-
-      - name: Update dependencies
-        run: composer update --prefer-dist --no-progress
 
       - name: Run test suite
         run: composer test

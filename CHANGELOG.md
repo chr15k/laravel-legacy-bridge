@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.4] - 2026-08-09
+
+### Changed
+- Upgraded Pest and related Pest plugins to version 5.
+- Updated Laravel Pint to 1.30.
+- Added Pest PHPStan and Rector integrations.
+- Expanded PHPStan analysis to include the test suite.
+- Increased the minimum test coverage threshold from 50% to 80%.
+- Added a dedicated Pest Test Impact Analysis (test:tia) command.
+- Enabled parallel execution for Pint.
+- Enabled strict type declarations through Rector.
+- Improved test type annotations and assertions for compatibility with stricter static analysis.
+
+### Fixed
+- Removed redundant integer type checks in LegacyPayload::resolveId().
+- Fixed type-safety issues across feature tests, including event callback parameters, model IDs, and JSON encoding.
+- Corrected test fixtures involving timestamp and database values to satisfy stricter type checking.
+
 ## [0.1.3] - 2026-07-15
 
 ### Fixed
