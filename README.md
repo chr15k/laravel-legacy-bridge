@@ -13,7 +13,8 @@
 </p>
 
 <p align="center">
-    <a href="https://medium.com/@chr15k/stop-forcing-your-users-to-log-in-again-session-continuity-during-laravel-migrations-364323a3ce5a?sharedUserId=chr15k"><img alt="Medium Article" src="https://img.shields.io/badge/Medium-Read%20the%20article-black?logo=medium"></a>
+    <a href="https://medium.com/@chr15k/stop-forcing-your-users-to-log-in-again-session-continuity-during-laravel-migrations-364323a3ce5a?sharedUserId=chr15k"><img alt="Medium Article" src="https://img.shields.io/badge/Medium-Read-black?logo=medium"></a>
+    <a href="https://laravel-news.com/laravel-legacy-bridge-carry-authenticated-sessions-from-a-legacy-app-into-laravel"><img alt="Laravel News Article" src="https://img.shields.io/badge/Laravel_News-Read-red"></a>
 </p>
 
 ------
