@@ -26,10 +26,12 @@
         "illuminate/database": "^13.0"
     },
     "require-dev": {
-        "laravel/pint": "^1.29",
+        "laravel/pint": "^1.30",
         "orchestra/testbench": "^11.1",
-        "pestphp/pest": "^4.7",
-        "pestphp/pest-plugin-type-coverage": "^4.0",
+        "pestphp/pest": "^5.0",
+        "pestphp/pest-plugin-phpstan": "^5.0",
+        "pestphp/pest-plugin-rector": "^5.0",
+        "pestphp/pest-plugin-type-coverage": "^5.0",
         "phpstan/phpstan": "^2.2",
         "rector/rector": "^2.5"
     },
@@ -55,21 +57,22 @@
     },
     "scripts": {
         "refactor": "rector",
-        "lint": "pint",
+        "lint": "pint --parallel",
         "fix": [
             "@lint",
             "@refactor",
             "@lint"
         ],
         "test:refactor": "rector --dry-run",
-        "test:lint": "pint --test",
+        "test:lint": "pint --test --parallel",
         "test:types": "phpstan analyse --ansi --memory-limit=2G",
-        "test:unit": "pest --colors=always --coverage --parallel --min=50",
+        "test:coverage": "pest --colors=always --coverage --parallel --min=80",
+        "test:tia": "pest --colors=always --parallel --tia",
         "test": [
             "@test:refactor",
             "@test:lint",
             "@test:types",
-            "@test:unit"
+            "@test:coverage"
         ],
         "post-autoload-dump": [
             "@clear",

@@ -1,6 +1,12 @@
+includes:
+    - vendor/pestphp/pest-plugin-phpstan/extension.neon
+
 parameters:
     level: max
     paths:
         - src
+        - tests
+    excludePaths:
+        - tests/TestCase.php
 
     reportUnmatchedIgnoredErrors: true

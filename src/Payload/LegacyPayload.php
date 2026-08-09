@@ -70,7 +70,7 @@ final readonly class LegacyPayload
             return (int) $scalar;
         }
 
-        return (is_int($scalar) || is_string($scalar)) ? $scalar : null;
+        return is_string($scalar) ? $scalar : null;
     }
 
     /**

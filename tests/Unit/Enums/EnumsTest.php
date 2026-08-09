@@ -22,8 +22,7 @@ describe('CookieEncryption', function (): void {
 
     it('casts from string', function (): void {
         expect(CookieEncryption::tryFrom('laravel'))->toBe(CookieEncryption::Laravel)
-            ->and(CookieEncryption::tryFrom('none'))->toBe(CookieEncryption::None)
-            ->and(CookieEncryption::tryFrom('invalid'))->toBeNull();
+            ->and(CookieEncryption::tryFrom('none'))->toBe(CookieEncryption::None);
     });
 });
 
@@ -134,7 +133,6 @@ describe('PayloadFormat', function (): void {
 
     it('casts from string', function (): void {
         expect(PayloadFormat::tryFrom('auto'))->toBe(PayloadFormat::Auto)
-            ->and(PayloadFormat::tryFrom('php_session'))->toBe(PayloadFormat::PhpSession)
-            ->and(PayloadFormat::tryFrom('invalid'))->toBeNull();
+            ->and(PayloadFormat::tryFrom('php_session'))->toBe(PayloadFormat::PhpSession);
     });
 });

@@ -45,6 +45,9 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
+/**
+ * @param  array<mixed>  $payload
+ */
 function legacySession(array $payload, string $id = 'test-session', ?int $lastActivity = null): void
 {
     DB::table('legacy_sessions')->insert([
@@ -54,6 +57,9 @@ function legacySession(array $payload, string $id = 'test-session', ?int $lastAc
     ]);
 }
 
+/**
+ * @param  array<mixed>  $data
+ */
 function phpSessionPayload(array $data): string
 {
     $encoded = '';

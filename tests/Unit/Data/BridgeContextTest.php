@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Chr15k\LegacyBridge\Data\BridgeContext;
-use Chr15k\LegacyBridge\Enums\PayloadFormat;
 use Chr15k\LegacyBridge\Payload\LegacyPayload;
 
 describe('BridgeContext', function (): void {
@@ -42,7 +41,7 @@ describe('BridgeContext', function (): void {
 
     it('withPayload returns a new immutable instance', function (): void {
         $ctx = new BridgeContext(cookieName: 'PHPSESSID', requestContext: []);
-        $payload = new LegacyPayload(['user_id' => 1], PayloadFormat::Json);
+        $payload = new LegacyPayload(['user_id' => 1]);
         $updated = $ctx->withPayload($payload);
 
         expect($updated->payload)->toBe($payload)
@@ -60,7 +59,7 @@ describe('BridgeContext', function (): void {
     });
 
     it('preserves all existing fields when creating new instances', function (): void {
-        $payload = new LegacyPayload(['user_id' => 1], PayloadFormat::Json);
+        $payload = new LegacyPayload(['user_id' => 1]);
 
         $ctx = new BridgeContext(
             cookieName: 'PHPSESSID',

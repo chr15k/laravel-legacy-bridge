@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Chr15k\LegacyBridge\Enums\PayloadFormat;
-use Chr15k\LegacyBridge\Payload\LegacyPayload;
 use Chr15k\LegacyBridge\Payload\PayloadDecoder;
 
 beforeEach(function (): void {
@@ -26,13 +25,13 @@ describe('format detection', function (): void {
     });
 
     it('detects base64 json format', function (): void {
-        $data = base64_encode(json_encode(['user_id' => 42]));
+        $data = base64_encode((string) json_encode(['user_id' => 42]));
         expect($this->decoder->detect($data))->toBe(PayloadFormat::Json);
     });
 
     it('detects raw json format', function (): void {
         $data = json_encode(['user_id' => 42]);
-        expect($this->decoder->detect($data))->toBe(PayloadFormat::Json);
+        expect($this->decoder->detect((string) $data))->toBe(PayloadFormat::Json);
     });
 
     it('returns null for unrecognised payloads without an app key', function (): void {
@@ -49,8 +48,7 @@ describe('php_session decoding', function (): void {
         $raw = 'user_id|i:42;username|s:4:"john";';
         $payload = $this->decoder->decode($raw, PayloadFormat::PhpSession);
 
-        expect($payload)->toBeInstanceOf(LegacyPayload::class)
-            ->and($payload->get('user_id'))->toBe(42)
+        expect($payload->get('user_id'))->toBe(42)
             ->and($payload->get('username'))->toBe('john');
     });
 
@@ -60,10 +58,16 @@ describe('php_session decoding', function (): void {
         $user->email = 'test@example.com';
 
         $raw = 'user|'.serialize($user).';';
+
         $payload = $this->decoder->decode($raw, PayloadFormat::PhpSession);
 
-        expect($payload->get('user'))->toBeObject()
-            ->and($payload->get('user')->id)->toBe(99);
+        $decodedUser = $payload->get('user');
+
+        expect($decodedUser)->toBeObject();
+
+        assert($decodedUser instanceof stdClass);
+
+        expect($decodedUser->id)->toBe(99);
     });
 
     it('returns empty payload for malformed php session', function (): void {
@@ -88,7 +92,7 @@ describe('laravel format decoding', function (): void {
 
     it('decodes a laravel json session payload', function (): void {
         $data = ['user_id' => 7, '_token' => 'csrf-token-value'];
-        $raw = base64_encode(json_encode($data));
+        $raw = base64_encode((string) json_encode($data));
         $payload = $this->decoder->decode($raw, PayloadFormat::Laravel);
 
         expect($payload->get('user_id'))->toBe(7);
@@ -107,14 +111,14 @@ describe('laravel format decoding', function (): void {
 describe('json format decoding', function (): void {
     it('decodes raw json', function (): void {
         $raw = json_encode(['user_id' => 5, 'locale' => 'en']);
-        $payload = $this->decoder->decode($raw, PayloadFormat::Json);
+        $payload = $this->decoder->decode((string) $raw, PayloadFormat::Json);
 
         expect($payload->get('user_id'))->toBe(5)
             ->and($payload->get('locale'))->toBe('en');
     });
 
     it('decodes base64 encoded json', function (): void {
-        $raw = base64_encode(json_encode(['user_id' => 5]));
+        $raw = base64_encode((string) json_encode(['user_id' => 5]));
         $payload = $this->decoder->decode($raw, PayloadFormat::Json);
 
         expect($payload->get('user_id'))->toBe(5);

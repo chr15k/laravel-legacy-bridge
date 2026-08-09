@@ -7,6 +7,7 @@ use Chr15k\LegacyBridge\Enums\InvalidationStrategy;
 use Chr15k\LegacyBridge\Events\LegacySessionBridged;
 use Chr15k\LegacyBridge\Events\LegacySessionBridgeError;
 use Chr15k\LegacyBridge\Events\LegacySessionBridgeFailed;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,7 @@ beforeEach(function (): void {
 describe('authentication', function (): void {
     it('bridges a valid legacy session and authenticates the user', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         legacySession(['user_id' => $user->id]);
 
@@ -34,12 +36,14 @@ describe('authentication', function (): void {
 
         $this->assertAuthenticated();
 
-        Event::assertDispatched(LegacySessionBridged::class, fn ($event): bool => $event->userId === $user->id && $event->sessionId === 'test-session');
+        Event::assertDispatched(LegacySessionBridged::class, fn (LegacySessionBridged $event): bool => $event->userId === $user->id && $event->sessionId === 'test-session');
     });
 
     it('authenticates the correct user from the legacy session', function (): void {
         User::factory()->create();
         $userB = User::factory()->create();
+
+        assert(isset($userB->id));
 
         legacySession(['user_id' => $userB->id]);
 
@@ -51,7 +55,10 @@ describe('authentication', function (): void {
     });
 
     it('skips bridge when user is already authenticated', function (): void {
+        /** @var Authenticatable&User $user */
         $user = User::factory()->create();
+
+        assert(isset($user->id));
 
         $this->actingAs($user)
             ->get('/protected')
@@ -64,6 +71,8 @@ describe('authentication', function (): void {
     it('handles multiple independent sessions for different users', function (): void {
         $userA = User::factory()->create();
         $userB = User::factory()->create();
+
+        assert(isset($userA->id, $userB->id));
 
         legacySession(['user_id' => $userA->id], 'session-a');
         legacySession(['user_id' => $userB->id], 'session-b');
@@ -92,7 +101,7 @@ describe('failure events', function (): void {
     it('dispatches MissingCookie when no legacy cookie is present', function (): void {
         $this->get('/protected')->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::MissingCookie);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::MissingCookie);
 
         $this->assertGuest();
     });
@@ -102,24 +111,25 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::SessionNotFound);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::SessionNotFound);
 
         $this->assertGuest();
     });
 
     it('dispatches SessionNotFound when session has expired', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         legacySession(
             payload: ['user_id' => $user->id],
-            lastActivity: now()->subMinutes(200)->timestamp,
+            lastActivity: (int) now()->subMinutes(200)->timestamp,
         );
 
         $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::SessionNotFound);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::SessionNotFound);
 
         $this->assertGuest();
     });
@@ -135,7 +145,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::PayloadDecodeFailed);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::PayloadDecodeFailed);
     });
 
     it('dispatches UserNotResolved when payload has no user ID', function (): void {
@@ -145,7 +155,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::UserNotResolved);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::UserNotResolved);
     });
 
     it('dispatches AuthenticationFailed when user ID does not exist in users table', function (): void {
@@ -155,7 +165,7 @@ describe('failure events', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::AuthenticationFailed);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::AuthenticationFailed);
     });
 
     it('dispatches BridgeError on unexpected exception and does not break the request', function (): void {
@@ -172,7 +182,7 @@ describe('failure events', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'ghost-session'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->context->cookieName === 'PHPSESSID'
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->context->cookieName === 'PHPSESSID'
             && $event->context->cookieValue === 'ghost-session');
     });
 });
@@ -184,6 +194,7 @@ describe('failure events', function (): void {
 describe('payload formats', function (): void {
     it('bridges a laravel format payload', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
@@ -200,6 +211,7 @@ describe('payload formats', function (): void {
 
     it('bridges a native php session format payload', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
@@ -218,10 +230,11 @@ describe('payload formats', function (): void {
 
     it('bridges a json format payload', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
-            'payload'       => base64_encode(json_encode(['user_id' => $user->id])),
+            'payload'       => base64_encode((string) json_encode(['user_id' => $user->id])),
             'last_activity' => now()->timestamp,
         ]);
 
@@ -236,6 +249,7 @@ describe('payload formats', function (): void {
 
     it('bridges a nested payload using dot notation key resolver', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
@@ -264,7 +278,7 @@ describe('payload formats', function (): void {
             ->get('/protected')
             ->assertRedirect('/login');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->reason === BridgeFailureReason::PayloadDecodeFailed);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->reason === BridgeFailureReason::PayloadDecodeFailed);
     });
 });
 
@@ -275,6 +289,7 @@ describe('payload formats', function (): void {
 describe('invalidation', function (): void {
     it('deletes the legacy session after write when strategy is after_write', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         config()->set('legacy-bridge.invalidation_strategy', InvalidationStrategy::AfterWrite->value);
 
@@ -289,6 +304,7 @@ describe('invalidation', function (): void {
 
     it('deletes the legacy session immediately when strategy is immediate', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         config()->set('legacy-bridge.invalidation_strategy', InvalidationStrategy::Immediate->value);
 
@@ -303,6 +319,7 @@ describe('invalidation', function (): void {
 
     it('preserves the legacy session when strategy is never', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         config()->set('legacy-bridge.invalidation_strategy', InvalidationStrategy::Never->value);
 
@@ -323,6 +340,7 @@ describe('invalidation', function (): void {
 describe('context carry', function (): void {
     it('carries specified keys from the legacy session into the laravel session', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         config()->set('legacy-bridge.context.carry_keys', ['locale', 'timezone']);
 
@@ -342,6 +360,7 @@ describe('context carry', function (): void {
 
     it('does not carry keys not listed in carry_keys', function (): void {
         $user = User::factory()->create();
+        assert(isset($user->id));
 
         config()->set('legacy-bridge.context.carry_keys', ['locale']);
 
@@ -362,6 +381,8 @@ describe('context carry', function (): void {
         $user = User::factory()->create();
 
         config()->set('legacy-bridge.context.flash', true);
+
+        assert(isset($user->id));
 
         legacySession([
             'user_id' => $user->id,
@@ -386,7 +407,7 @@ describe('bridge context', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'ghost'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => isset($event->context->requestContext['ip'])
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => isset($event->context->requestContext['ip'])
             && isset($event->context->requestContext['path'])
             && isset($event->context->requestContext['method'])
             && isset($event->context->requestContext['user_agent']));
@@ -398,7 +419,7 @@ describe('bridge context', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->context->sessionId === 'test-session');
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->context->sessionId === 'test-session');
     });
 
     it('accumulates user id in context when auth fails', function (): void {
@@ -407,7 +428,7 @@ describe('bridge context', function (): void {
         $this->withUnencryptedCookies(['PHPSESSID' => 'test-session'])
             ->get('/protected');
 
-        Event::assertDispatched(LegacySessionBridgeFailed::class, fn ($event): bool => $event->context->userId === 99999);
+        Event::assertDispatched(LegacySessionBridgeFailed::class, fn (LegacySessionBridgeFailed $event): bool => $event->context->userId === 99999);
     });
 });
 
@@ -425,6 +446,8 @@ describe('column mapping', function (): void {
             $table->longText('data'); // custom column name
             $table->integer('last_activity');
         });
+
+        assert(isset($user->id));
 
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
@@ -479,6 +502,8 @@ describe('datetime format', function (): void {
     it('bridges a session with a UTC datetime last_activity column', function (): void {
         $user = User::factory()->create();
 
+        assert(isset($user->id));
+
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
             'user_id'       => $user->id,
@@ -498,6 +523,8 @@ describe('datetime format', function (): void {
 
         // Store the current time expressed in America/New_York (UTC-4 or UTC-5)
         $legacyNow = now()->setTimezone('America/New_York')->toDateTimeString();
+
+        assert(isset($user->id));
 
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
@@ -521,6 +548,8 @@ describe('datetime format', function (): void {
         // 3 hours ago expressed in America/New_York — well outside the 120m lifetime
         $expiredTime = now()->subHours(3)->setTimezone('America/New_York')->toDateTimeString();
 
+        assert(isset($user->id));
+
         DB::table('legacy_sessions')->insert([
             'id'            => 'test-session',
             'user_id'       => $user->id,
@@ -538,7 +567,7 @@ describe('datetime format', function (): void {
 
         Event::assertDispatched(
             LegacySessionBridgeFailed::class,
-            fn ($e): bool => $e->reason === BridgeFailureReason::SessionNotFound,
+            fn (LegacySessionBridgeFailed $e): bool => $e->reason === BridgeFailureReason::SessionNotFound,
         );
     });
 });

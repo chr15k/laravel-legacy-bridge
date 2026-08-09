@@ -50,7 +50,7 @@ composer test:types
 
 Run unit tests:
 ```bash
-composer test:unit
+composer test:coverage
 ```
 
 ## CI
