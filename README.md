@@ -119,7 +119,7 @@ php artisan legacy-bridge:verify --session-id=a_real_session_id
 
 Example output:
 
-<img width="725" height="624" alt="Screenshot 2026-07-09 at 21 05 28" src="https://github.com/user-attachments/assets/c3ea0894-8791-41e7-9919-d7ed61e33254" />
+<img width="600" alt="Screenshot 2026-08-09 at 14 03 15" src="https://github.com/user-attachments/assets/50c1522e-1c73-449f-9a71-ec6fb80f9915" />
 
 ---
 
